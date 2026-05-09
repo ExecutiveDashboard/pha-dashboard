@@ -22,3 +22,19 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Junk files - exclude from repo
+*.exe
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.zip
+out.txt
+check_*.php
+wp13514748-*.jpg
+uwp5020023.png
+z.png
+"image 36*"
+GOP.zip
+lively_setup_x86_full_v2210.exe
