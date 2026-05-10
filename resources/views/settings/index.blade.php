@@ -17,11 +17,28 @@
             @foreach($groupSettings as $setting)
             <div class="col-md-4">
                 <label class="form-label" style="font-size:13px;font-weight:600;">{{ $setting->label }}</label>
-                <input type="{{ $setting->type === 'number' ? 'number' : 'text' }}"
-                       step="any"
-                       name="{{ $setting->key }}"
-                       class="form-control"
-                       value="{{ $setting->value }}">
+                @if($setting->key === 'project_name')
+                    <select name="{{ $setting->key }}" class="form-select">
+                        <option value="PHA Apartments I-16/3" {{ $setting->value == 'PHA Apartments I-16/3' || $setting->value == 'I-16/3 Apartments' ? 'selected' : '' }}>PHA Apartments I-16/3</option>
+                        <option value="PHA Officers Residencia Kurri" {{ $setting->value == 'PHA Officers Residencia Kurri' ? 'selected' : '' }}>PHA Officers Residencia Kurri</option>
+                        <option value="PHA Apartments I-12" {{ $setting->value == 'PHA Apartments I-12' ? 'selected' : '' }}>PHA Apartments I-12</option>
+                        <option value="PHA Apartments G-13" {{ $setting->value == 'PHA Apartments G-13' ? 'selected' : '' }}>PHA Apartments G-13</option>
+                    </select>
+                @elseif($setting->key === 'bank_name')
+                    <select name="{{ $setting->key }}" class="form-select">
+                        <option value="National Bank of Pakistan" {{ $setting->value == 'National Bank of Pakistan' ? 'selected' : '' }}>National Bank of Pakistan</option>
+                        <option value="1Bill / Kuickpay" {{ $setting->value == '1Bill / Kuickpay' ? 'selected' : '' }}>1Bill / Kuickpay</option>
+                        <option value="Raast / QR Code" {{ $setting->value == 'Raast / QR Code' ? 'selected' : '' }}>Raast / QR Code</option>
+                        <option value="Habib Bank Limited" {{ $setting->value == 'Habib Bank Limited' ? 'selected' : '' }}>Habib Bank Limited</option>
+                        <option value="Bank Alfalah" {{ $setting->value == 'Bank Alfalah' ? 'selected' : '' }}>Bank Alfalah</option>
+                    </select>
+                @else
+                    <input type="{{ $setting->type === 'number' ? 'number' : 'text' }}"
+                           step="any"
+                           name="{{ $setting->key }}"
+                           class="form-control"
+                           value="{{ $setting->value }}">
+                @endif
                 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Key: <code>{{ $setting->key }}</code></div>
             </div>
             @endforeach

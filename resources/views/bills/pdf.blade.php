@@ -119,44 +119,42 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
 <div class="hdr">
   <table>
     <tr>
-      <td width="38%">
+      <td width="45%">
         <table style="width:100%;border-collapse:collapse;">
           <tr>
-            <td width="44" style="vertical-align:middle;padding-right:8px;">
+            <td width="55" style="vertical-align:middle;padding-right:8px;">
+              @if($phaLogoB64)
+                <div style="width:48px;height:48px;border-radius:4px;background:#fff;padding:3px;">
+                  <img src="{{ $phaLogoB64 }}" style="width:42px;height:42px;display:block;" alt="PHA">
+                </div>
+              @endif
+            </td>
+            <td style="vertical-align:middle;">
+              <div class="org" style="font-size:20px;">PHA Foundation</div>
+              <div class="sub">Ministry of Housing &amp; Works, Government of Pakistan</div>
+              <div class="sub">Maintenance Billing System — I-16/3 Islamabad</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td width="30%">
+        <div class="title">MAINTENANCE BILL</div>
+        <div class="sub2" style="font-size:10px; font-weight:bold; color:#dcfce7; margin-top:4px;">BILL MONTH: {{ strtoupper($billMonth) }}</div>
+      </td>
+      <td width="25%" style="text-align:right;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="vertical-align:middle;text-align:right;padding-right:8px;">
               @if($govtLogoB64)
-                <div style="width:38px;height:38px;border-radius:50%;background:#fff;padding:3px;">
+                <div style="width:38px;height:38px;border-radius:50%;background:#fff;padding:3px;margin-left:auto;">
                   <img src="{{ $govtLogoB64 }}" style="width:32px;height:32px;display:block;" alt="Govt">
                 </div>
               @endif
             </td>
             <td style="vertical-align:middle;">
-              <div style="font-size:7.5px;color:rgba(255,255,255,0.55);">حکومت پاکستان — GOVERNMENT OF PAKISTAN</div>
-              <div class="org">Punjab Housing Authority Foundation</div>
-              <div class="sub">Ministry of Housing &amp; Works, Islamabad</div>
-              <div class="sub">I-16/3 Apartments — Maintenance Billing System</div>
-            </td>
-          </tr>
-        </table>
-      </td>
-      <td width="36%">
-        <div class="title">MAINTENANCE BILL</div>
-        <div class="sub2">میانٹینس بل — Monthly Invoice</div>
-      </td>
-      <td width="26%" style="text-align:right;">
-        <table style="width:100%;border-collapse:collapse;">
-          <tr>
-            <td style="vertical-align:middle;text-align:right;padding-right:8px;">
-              @if($phaLogoB64)
-                <div style="width:38px;height:38px;border-radius:50%;background:#fff;padding:3px;margin-left:auto;">
-                  <img src="{{ $phaLogoB64 }}" style="width:32px;height:32px;display:block;" alt="PHA">
-                </div>
-              @endif
-            </td>
-            <td style="vertical-align:middle;">
               <div class="mbox">
-                <div class="ml">Bill Month</div>
-                <div class="mv">{{ $billMonth }}</div>
-                <div class="ml" style="margin-top:3px;">File No: {{ $allottee->file_no }}</div>
+                <div class="ml">File No</div>
+                <div class="mv">{{ $allottee->file_no }}</div>
               </div>
             </td>
           </tr>
@@ -180,8 +178,8 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
 <div class="astrip">
   <table>
     <tr>
-      <td width="28%"><div class="al">Allottee Name</div><div class="av">{{ $allottee->name ?? 'N/A' }}</div></td>
-      <td width="20%"><div class="al">CNIC</div><div class="av">{{ $allottee->cnic ?? '—' }}</div></td>
+      <td width="28%"><div class="al">Allottee Name</div><div class="av">{{ $allottee->display_name }}</div></td>
+      <td width="20%"><div class="al">CNIC</div><div class="av">{{ $allottee->display_cnic }}</div></td>
       <td width="16%"><div class="al">Cell / Mobile</div><div class="av">{{ $allottee->cell ?? '—' }}</div></td>
       <td width="20%"><div class="al">Block / Floor / Flat</div><div class="av">Blk {{ $allottee->block_no ?? '—' }} / Fl {{ $allottee->floor ?? '—' }} / Flat {{ $allottee->flat_no ?? '—' }}</div></td>
       <td width="16%"><div class="al">BPS / Possession</div><div class="av">{{ $allottee->bps ? 'BPS-'.$allottee->bps : '—' }} / {{ $allottee->possession_date?->format('d-m-Y') ?? 'N/A' }}</div></td>
@@ -205,12 +203,22 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
       <tr><th style="width:44%;">Description</th><th class="tc">Rate</th><th class="tc">Months</th><th class="tr">Amount (Rs.)</th></tr>
     </thead>
     <tbody>
+      @if($dueMonths > 1)
       <tr>
-        <td><span class="fw">Maintenance Charges</span><br><span style="font-size:8px;color:#6b7280;">{{ $allottee->covered_area }} Sq Ft × Rs.{{ number_format($rate,2) }}/Sq Ft</span></td>
+        <td><span class="fw">Previous Arrears (Maintenance)</span><br><span style="font-size:8px;color:#6b7280;">Past due balance for {{ $dueMonths - 1 }} month(s)</span></td>
         <td class="tc">{{ number_format($rate,2) }}</td>
-        <td class="tc">{{ $dueMonths }}</td>
-        <td class="tr fw">{{ number_format($maintenance,2) }}</td>
+        <td class="tc">{{ $dueMonths - 1 }}</td>
+        <td class="tr fw">{{ number_format($maintenance - $monthlyRate,2) }}</td>
       </tr>
+      @endif
+      @if($dueMonths > 0)
+      <tr>
+        <td><span class="fw">Current Month Maintenance</span><br><span style="font-size:8px;color:#6b7280;">{{ $allottee->covered_area }} Sq Ft × Rs.{{ number_format($rate,2) }}/Sq Ft</span></td>
+        <td class="tc">{{ number_format($rate,2) }}</td>
+        <td class="tc">1</td>
+        <td class="tr fw">{{ number_format($monthlyRate,2) }}</td>
+      </tr>
+      @endif
       @if($ww > 0)
       <tr>
         <td><span class="fw">Watch &amp; Ward Charges</span><br><span style="font-size:8px;color:#6b7280;">Possession date policy applies</span></td>
@@ -264,7 +272,7 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
   <div class="st">Addresses</div>
   <table style="width:100%;border-collapse:separate;border-spacing:5px 0;">
     <tr>
-      <td class="mbox2" width="50%"><div class="mlbl">Mailing Address</div><div class="fw" style="font-size:9.5px;">{{ $allottee->name ?? '' }}</div><div>{{ $allottee->mailing_address }}</div></td>
+      <td class="mbox2" width="50%"><div class="mlbl">Mailing Address</div><div class="fw" style="font-size:9.5px;">{{ $allottee->display_name }}</div><div>{{ $allottee->mailing_address }}</div></td>
       <td class="mbox2" width="50%"><div class="mlbl">Property Address</div><div class="fw" style="font-size:9.5px;">Flat {{ $allottee->flat_no ?? '—' }}, Floor {{ $allottee->floor ?? '—' }}, Block {{ $allottee->block_no ?? '—' }}</div><div>I-16/3, Islamabad</div></td>
     </tr>
   </table>
@@ -287,14 +295,13 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
 
 <!-- RIGHT -->
 <td class="col-r">
-  <div class="amt-box">
+  <div class="amt-box" style="margin-bottom:8px;">
     <table>
       <tr>
         <td style="vertical-align:middle;" width="62%">
           <div class="abl">AMOUNT PAYABLE NOW</div>
           <div class="abv">Rs. {{ number_format($pending,2) }}</div>
           <div class="abn">Pay before {{ now()->endOfMonth()->format('d M Y') }}</div>
-          <div class="abn" style="margin-top:3px;">File: {{ $allottee->file_no }} · Cat-{{ $allottee->category }}</div>
         </td>
         <td style="vertical-align:middle;text-align:right;" width="38%">
           <div class="abmo">
@@ -307,50 +314,44 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
     </table>
   </div>
 
-  <div class="pm">
-    <div class="pmt">&#128181; Cash Payment at Bank</div>
-    <div class="pml">
-      <strong>Bank:</strong> {{ $bankName }}<br>
-      <strong>Branch:</strong> {{ $bankBranch }}<br>
-      <strong>Account No:</strong> {{ $bankAccNo }}<br>
-      <strong>Title:</strong> PHA Foundation — Maint. Fund<br>
-      Present this bill at bank counter. Keep receipt.
+  <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:6px; padding:8px; margin-bottom:8px; text-align:center;">
+    <div style="margin-bottom:4px;">
+      <img src="{{ $oneLinkB64 }}" style="height: 28px; vertical-align: middle; margin-right: 6px;">
+      <span style="font-size:10px; font-weight:800; color:#166534; text-transform:uppercase; vertical-align: middle;">1-Bill Consumer No.</span>
+    </div>
+    <div style="font-size:14px; font-weight:900; letter-spacing:1px; color:#1a2332;">PHAF-{{ preg_replace('/[^A-Za-z0-9]/', '', $allottee->block_no ?? 'X') }}{{ str_pad(preg_replace('/[^0-9]/', '', $allottee->flat_no ?? '0'), 3, '0', STR_PAD_LEFT) }}-{{ date('Ym') }}</div>
+  </div>
+
+  <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px; margin-bottom:8px; text-align:center;">
+    <div style="font-size:9px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:4px;">Or Manual Bank Deposit</div>
+    <div style="font-size:11px; font-weight:bold; color:#0f172a;">JS Bank Ltd</div>
+    <div style="font-size:13px; font-weight:900; letter-spacing:1px; color:#0f4423; margin:2px 0;">A/C# 1490108</div>
+    <div style="font-size:9px; font-weight:bold; color:#334155;">Title: PHA-F I-16/3 Maintenance Services</div>
+  </div>
+
+  <div style="background:#1B6B35; color:#fff; font-size:8px; font-weight:bold; text-align:center; padding:5px; border-radius:4px 4px 0 0;">
+    PAY ONLINE VIA 1-BILL THROUGH
+  </div>
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-top:none; text-align:center; font-size:7.5px; font-weight:bold; color:#475569; padding:4px; margin-bottom:8px; border-radius:0 0 4px 4px;">
+    easypaisa &middot; JazzCash &middot; Mobile Banking &middot; Internet Banking &middot; Over the Counter
+  </div>
+
+  <div class="pm" style="margin-bottom:6px;">
+    <div class="pmt" style="background:#1B6B35;">Paying Over the Counter (Cash Payment)</div>
+    <div class="pml" style="line-height:1.4;">
+      <strong>1.</strong> Present this Invoice to Bank Representative specifying 1-Bill Consumer No. to be paid through 1-Bill - Invoice.<br>
+      <strong>2.</strong> Hand-over Cash to Representative.<br>
+      <strong>3.</strong> Collect relevant Payment Receipt (Computer Printed Receipt or manual receipt with Bank Stamp) and its <strong>DONE.</strong>
     </div>
   </div>
 
   <div class="pm on">
-    <div class="pmt">&#128242; Online / Raast / 1Link</div>
-    <div class="pml">
-      <strong>Raast A/C:</strong> {{ $bankAccNo }}<br>
-      <strong>Reference:</strong> {{ $allottee->file_no }}<br>
-      <strong>Amount:</strong> Rs. {{ number_format($pending,2) }}<br>
-      Open banking app → Raast / Scan QR →<br>
-      Confirm amount → Share receipt with PHA office.
+    <div class="pmt" style="background:#1B6B35;">Pay via Mobile Wallets / Internet / Mobile Banking</div>
+    <div class="pml" style="line-height:1.4;">
+      <strong>1.</strong> Login to your Mobile Wallet / Internet Banking / Mobile Banking Account.<br>
+      <strong>2.</strong> Tap/Select <strong>1-Bill - Invoice</strong> option.<br>
+      <strong>3.</strong> Enter 1-Bill Consumer No. and complete Transaction. You are <strong>DONE.</strong>
     </div>
-  </div>
-
-  <div class="qrb">
-    <div class="pmt" style="text-align:left;">&#128681; Scan QR to Pay — Raast / 1Link</div>
-    <table style="width:100%;border-collapse:collapse;">
-      <tr>
-        <td width="90" style="vertical-align:middle;">
-          @if(!empty($qrCodeB64))
-            <img src="{{ $qrCodeB64 }}" style="width:84px;height:84px;display:block;border:2px solid #1B6B35;border-radius:4px;padding:2px;background:#fff;" alt="QR Code">
-          @else
-            <div style="width:84px;height:84px;border:2px dashed #1B6B35;border-radius:4px;background:#fff;font-size:7px;color:#1B6B35;padding:8px;text-align:center;line-height:1.5;">[QR]<br>Scan via App</div>
-          @endif
-        </td>
-        <td style="vertical-align:middle;padding-left:8px;">
-          <div class="pml">
-            HBL &middot; UBL &middot; Meezan<br>
-            JazzCash &middot; Easypaisa &middot; SadaPay<br><br>
-            <strong>Ref:</strong> {{ $allottee->file_no }}<br>
-            <strong>A/C:</strong> {{ $bankAccNo }}<br>
-            <strong>Amt:</strong> Rs.{{ number_format($pending,0) }}
-          </div>
-        </td>
-      </tr>
-    </table>
   </div>
 </td>
 
@@ -362,9 +363,9 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
   <table>
     <tr>
       <td width="4%" style="text-align:center;font-size:14px;color:#94a3b8;">✂</td>
-      <td width="15%"><div class="to-lbl">Allottee Name</div><div class="to-val">{{ Str::limit($allottee->name ?? 'N/A', 20) }}</div></td>
+      <td width="15%"><div class="to-lbl">Allottee Name</div><div class="to-val">{{ Str::limit($allottee->display_name, 20) }}</div></td>
       <td width="14%"><div class="to-lbl">File No.</div><div class="to-val">{{ $allottee->file_no }}</div></td>
-      <td width="14%"><div class="to-lbl">CNIC</div><div class="to-val" style="font-size:9px;">{{ $allottee->cnic ?? '—' }}</div></td>
+      <td width="14%"><div class="to-lbl">CNIC</div><div class="to-val" style="font-size:9px;">{{ $allottee->display_cnic }}</div></td>
       <td width="13%"><div class="to-lbl">Bill Month</div><div class="to-val">{{ $billMonth }}</div></td>
       <td width="14%"><div class="to-lbl">Due Date</div><div class="to-val">{{ now()->endOfMonth()->format('d M Y') }}</div></td>
       <td width="26%" style="text-align:right;"><div class="to-lbl">Amount Due</div><div class="to-amount">Rs. {{ number_format($pending,2) }}</div></td>

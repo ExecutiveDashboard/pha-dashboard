@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Allottee;
+use App\Models\Bill;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class AllotteePortalController extends Controller
@@ -17,29 +19,20 @@ class AllotteePortalController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
-            'cnic' => 'required|string',
-            'cell' => 'required|string',
-        ]);
-
+        $request->validate(['cnic' => 'required|string', 'cell' => 'required|string']);
         $cnic = trim($request->cnic);
         $cell = trim($request->cell);
 
-        // Match CNIC and cell (flexible match — remove dashes/spaces)
-        $allottee = Allottee::where('cnic', $cnic)->first();
+        $allottee = Allottee::where('cnic', 'like', '%' . $cnic . '%')->first();
         if (!$allottee) {
-            // Try without dashes
-            $allottee = Allottee::whereRaw("REPLACE(cnic, '-', '') = ?", [str_replace('-', '', $cnic)])->first();
+            $allottee = Allottee::whereRaw("REPLACE(cnic, '-', '') LIKE ?", ['%' . str_replace('-', '', $cnic) . '%'])->first();
         }
-
         if (!$allottee) {
             return back()->withErrors(['cnic' => 'CNIC not found in our records.'])->withInput();
         }
 
-        // Check cell number (flexible: last 10 digits)
         $inputCell = preg_replace('/\D/', '', $cell);
         $dbCell    = preg_replace('/\D/', '', $allottee->cell ?? '');
-
         if (!$dbCell || !str_ends_with($dbCell, substr($inputCell, -10))) {
             return back()->withErrors(['cell' => 'Mobile number does not match our records.'])->withInput();
         }
@@ -53,8 +46,32 @@ class AllotteePortalController extends Controller
         $id = session('portal_allottee_id');
         if (!$id) return redirect()->route('portal.login');
 
-        $allottee = Allottee::findOrFail($id);
-        return view('portal.dashboard', compact('allottee'));
+        $allottee     = Allottee::findOrFail($id);
+        $monthlyBills = Bill::where('allottee_id', $allottee->id)->orderByDesc('bill_month')->get();
+        $hasMonthlyBills = $monthlyBills->isNotEmpty();
+        $bankAccNo    = Setting::getValue('bank_account_no', 'PHA-001-NBP-001');
+        $bankName     = Setting::getValue('bank_name', 'National Bank of Pakistan');
+        $bankBranch   = Setting::getValue('bank_branch', 'Islamabad Main Branch');
+
+        return view('portal.dashboard', compact(
+            'allottee', 'monthlyBills', 'hasMonthlyBills',
+            'bankAccNo', 'bankName', 'bankBranch'
+        ));
+    }
+
+    public function viewMonthlyBill($month)
+    {
+        $id = session('portal_allottee_id');
+        if (!$id) return redirect()->route('portal.login');
+
+        $allottee  = Allottee::findOrFail($id);
+        $bill      = Bill::where('allottee_id', $allottee->id)->where('bill_month', $month)->firstOrFail();
+        $bankAccNo = Setting::getValue('bank_account_no', 'PHA-001-NBP-001');
+        $bankName  = Setting::getValue('bank_name', 'National Bank of Pakistan');
+        $bankBranch= Setting::getValue('bank_branch', 'Islamabad Main Branch');
+        $rate      = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
+
+        return view('portal.bill_detail', compact('allottee', 'bill', 'bankAccNo', 'bankName', 'bankBranch', 'rate'));
     }
 
     public function logout(Request $request)

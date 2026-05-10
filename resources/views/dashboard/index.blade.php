@@ -4,6 +4,62 @@
 
 @section('content')
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="m-0 text-secondary" style="font-size: 14px; font-weight: 600;"><i class="bi bi-bar-chart-line me-2"></i>Dashboard Overview</h5>
+    <form action="{{ route('dashboard') }}" method="GET" class="d-flex align-items-center bg-white border rounded px-2 py-1 shadow-sm">
+        <label class="me-2 text-muted fw-bold" style="font-size: 11px;">FISCAL YEAR:</label>
+        <select name="fy" class="form-select form-select-sm border-0 fw-bold text-success" style="width: auto; background: transparent; cursor: pointer; padding-left: 5px; padding-right: 25px;" onchange="this.form.submit()">
+            <option value="2024-25" {{ $fiscalYear == '2024-25' ? 'selected' : '' }}>FY 2024-25</option>
+            <option value="2025-26" {{ $fiscalYear == '2025-26' ? 'selected' : '' }}>FY 2025-26</option>
+            <option value="2026-27" {{ $fiscalYear == '2026-27' ? 'selected' : '' }}>FY 2026-27</option>
+        </select>
+    </form>
+    
+    <form action="{{ route('monthly-bills.generate') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to generate bills for all allottees for this month? This will increment their due months and add to their arrears.');">
+        @csrf
+        <input type="hidden" name="month" value="{{ date('Y-m') }}">
+        <button type="submit" class="btn btn-sm text-white fw-bold shadow-sm" style="background: linear-gradient(135deg, #ef4444, #b91c1c); border-radius: 8px; border: none; padding: 6px 14px; transition: transform 0.2s, box-shadow 0.2s;">
+            <i class="bi bi-lightning-fill me-1"></i>Generate {{ date('M Y') }} Bills
+        </button>
+    </form>
+</div>
+
+<style>
+/* Premium Dashboard Styling Enhancements */
+.chart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+.kpi-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.kpi-pill {
+    flex: 1; min-width: 130px; border-radius: 12px;
+    padding: 11px 14px; color: #fff; text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+}
+.kpi-pill::after {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(to bottom right, rgba(255,255,255,0.2), rgba(255,255,255,0));
+    transform: rotate(30deg); pointer-events: none;
+}
+.kpi-pill:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
+.section-title { font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 4px; display: flex; align-items: center; letter-spacing: -0.2px; }
+.chart-sub { font-size: 11px; color: #64748b; margin-bottom: 12px; font-weight: 500; }
+.premium-section-heading {
+    margin: 24px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;
+    font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center;
+}
+</style>
+
 {{-- ===== KPI STRIP ===== --}}
 <div class="kpi-strip mb-4">
     <div class="kpi-pill pill-blue">
@@ -23,8 +79,8 @@
         <div class="pill-lbl">Monthly Billing (Est.)</div>
     </div>
     <div class="kpi-pill pill-purple">
-        <div class="pill-val">Rs. {{ number_format($totalYearlyBilling/1000000,2) }}M</div>
-        <div class="pill-lbl">Yearly Billing (Est.)</div>
+        <div class="pill-val">Rs. {{ number_format($actualYearly/1000000,2) }}M</div>
+        <div class="pill-lbl">Yearly Collection (Actual) <br><small>vs Forecast: Rs. {{ number_format($forecastYearly/1000000,2) }}M</small></div>
     </div>
     <div class="kpi-pill pill-indigo">
         <div class="pill-val">Rs. {{ number_format($totalWWRecoverable) }}</div>
@@ -78,7 +134,7 @@
             @php $wwDate = date('d-m-Y', strtotime($wwCutoff)); @endphp
             <div class="row g-2 mt-1">
                 <div class="col-4">
-                    <div style="border-radius:10px;padding:10px 8px;text-align:center;background:#fef9c3;border:2px solid #f59e0b;color:#92400e;">
+                    <div class="h-100 d-flex flex-column justify-content-center" style="border-radius:10px;padding:10px 8px;text-align:center;background:#fef9c3;border:2px solid #f59e0b;color:#92400e;">
                         <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">BEFORE {{ $wwDate }}</div>
                         <div style="font-size:10px;margin-bottom:6px;">No W&amp;W Applicable</div>
                         <div style="font-size:22px;font-weight:900;">{{ number_format($wwBeforeCount) }}</div>
@@ -87,7 +143,7 @@
                     </div>
                 </div>
                 <div class="col-4">
-                    <div style="border-radius:10px;padding:10px 8px;text-align:center;background:#dcfce7;border:2px solid #1B6B35;color:#1B6B35;">
+                    <div class="h-100 d-flex flex-column justify-content-center" style="border-radius:10px;padding:10px 8px;text-align:center;background:#dcfce7;border:2px solid #1B6B35;color:#1B6B35;">
                         <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">ON/AFTER {{ $wwDate }}</div>
                         <div style="font-size:10px;margin-bottom:6px;">W&amp;W Applicable</div>
                         <div style="font-size:22px;font-weight:900;">{{ number_format($wwAfterCount) }}</div>
@@ -96,8 +152,8 @@
                     </div>
                 </div>
                 <div class="col-4">
-                    <div style="border-radius:10px;padding:10px 8px;text-align:center;background:#ede9fe;border:2px solid #7c3aed;color:#5b21b6;">
-                        <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">DATE NULL</div>
+                    <div class="h-100 d-flex flex-column justify-content-center" style="border-radius:10px;padding:10px 8px;text-align:center;background:#ede9fe;border:2px solid #7c3aed;color:#5b21b6;">
+                        <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">DATE NOT RECORDED</div>
                         <div style="font-size:10px;margin-bottom:6px;">W&amp;W Applicable</div>
                         <div style="font-size:22px;font-weight:900;">{{ number_format($wwNullCount) }}</div>
                         <div style="font-size:12px;font-weight:600;">{{ $totalAllottees > 0 ? round($wwNullCount/$totalAllottees*100,1) : 0 }}%</div>
@@ -144,7 +200,7 @@
             <h6 class="section-title"><i class="bi bi-calculator me-2" style="color:#d97706;"></i>Billing Summary <span class="badge-policy">Estimated</span></h6>
             <table class="table table-sm mb-0" style="font-size:12px;">
                 <tr><td class="text-muted">Total Monthly Maintenance (All)</td><td class="text-end fw-600">Rs. {{ number_format($totalMonthlyBilling) }}</td></tr>
-                <tr><td class="text-muted">Total Yearly Maintenance (All)</td><td class="text-end fw-600">Rs. {{ number_format($totalYearlyBilling) }}</td></tr>
+                <tr><td class="text-muted">Total Yearly Maintenance (All)</td><td class="text-end fw-600">Rs. {{ number_format($forecastYearly) }}</td></tr>
                 <tr><td class="text-muted">Total W&W Recoverable</td><td class="text-end fw-600">Rs. {{ number_format($totalWWRecoverable) }}</td></tr>
                 <tr style="background:#f0f4f8;"><td class="fw-700">Subtotal (Maint. + W&W)</td><td class="text-end fw-700">Rs. {{ number_format($subtotal) }}</td></tr>
                 <tr><td class="text-muted" style="color:#dc2626;">Total Delay Charges ({{ $delayPct }}%)</td><td class="text-end" style="color:#dc2626;font-weight:700;">Rs. {{ number_format($totalDelayCharges) }}</td></tr>
@@ -155,16 +211,17 @@
             </div>
 
             {{-- Payment vs Pending --}}
-            <div class="row g-2 mt-2">
+            <div class="mt-3 mb-1" style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Revenue Collection ({{ $fiscalYear }})</div>
+            <div class="row g-2">
                 <div class="col-6">
                     <div style="background:#dcfce7;border-radius:10px;padding:10px;text-align:center;">
-                        <div style="font-size:10px;font-weight:600;color:#166534;">AMOUNT COLLECTED</div>
+                        <div style="font-size:10px;font-weight:600;color:#166534;">PAID / SETTLED</div>
                         <div style="font-size:16px;font-weight:800;color:#1B6B35;">Rs. {{ number_format($totalPaid/1000000,2) }}M</div>
                     </div>
                 </div>
                 <div class="col-6">
                     <div style="background:#fee2e2;border-radius:10px;padding:10px;text-align:center;">
-                        <div style="font-size:10px;font-weight:600;color:#991b1b;">PENDING RECOVERY</div>
+                        <div style="font-size:10px;font-weight:600;color:#991b1b;">PENDING / UNPAID</div>
                         <div style="font-size:16px;font-weight:800;color:#dc2626;">Rs. {{ number_format($totalPending/1000000,2) }}M</div>
                     </div>
                 </div>
@@ -187,7 +244,31 @@
     </div>
 </div>
 
-{{-- ===== ROW 2: CITY-WISE ===== --}}
+{{-- ===== ROW 1.5: NEW FINANCIAL VISUALIZATIONS ===== --}}
+<div class="row g-3 mb-3">
+    <div class="col-lg-4 col-md-6">
+        <div class="chart-card h-100">
+            <h6 class="section-title"><i class="bi bi-speedometer2 me-2" style="color:#059669;"></i>Financial Recovery Rate</h6>
+            <p class="chart-sub">Percentage of total billed amount recovered</p>
+            <div id="recoveryGauge" class="d-flex justify-content-center"></div>
+            <div class="text-center mt-2">
+                <div style="font-size:11px;color:#64748b;">Target: 100% Recovery</div>
+                <div style="font-size:12px;font-weight:700;color:#1B6B35;">Rs. {{ number_format($totalPaid/1000000, 2) }}M Recovered</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8 col-md-6">
+        <div class="chart-card h-100">
+            <h6 class="section-title"><i class="bi bi-bar-chart-line-fill me-2" style="color:#dc2626;"></i>Due Months Risk Histogram</h6>
+            <p class="chart-sub">Distribution of allottees by number of months overdue (Defaulter Curve)</p>
+            <div id="dueMonthsHistogram"></div>
+        </div>
+    </div>
+</div>
+
+<div class="premium-section-heading"><i class="bi bi-people-fill me-2 text-primary"></i>Demographics & Analytics</div>
+
+{{-- ===== ROW 2: CITY-WISE & NEW ANALYTICS ===== --}}
 <div class="row g-3 mb-3">
     <div class="col-lg-7 col-md-12">
         <div class="chart-card">
@@ -221,11 +302,29 @@
                             <td>TOTAL</td>
                             <td class="text-end">{{ number_format($totalAllottees) }}</td>
                             <td class="text-end">{{ number_format($totalMonthlyBilling) }}</td>
-                            <td class="text-end">{{ number_format($totalYearlyBilling) }}</td>
+                            <td class="text-end">{{ number_format($forecastYearly) }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+{{-- ===== ROW 2.5: BPS & POSSESSION TIMELINE ===== --}}
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="chart-card h-100">
+            <h6 class="section-title"><i class="bi bi-radar me-2" style="color:#8b5cf6;"></i>BPS Demographic Distribution</h6>
+            <p class="chart-sub">Spread of allottees across Basic Pay Scales</p>
+            <div id="bpsChart"></div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="chart-card h-100">
+            <h6 class="section-title"><i class="bi bi-graph-up-arrow me-2" style="color:#0ea5e9;"></i>Historical Possession Timeline</h6>
+            <p class="chart-sub">Cumulative trend of flats handed over</p>
+            <div id="possessionChart"></div>
         </div>
     </div>
 </div>
@@ -272,15 +371,23 @@
 <div class="row g-3 mb-3">
     <div class="col-lg-8">
         <div class="chart-card">
-            <h6 class="section-title"><i class="bi bi-bar-chart-fill me-2" style="color:#7c3aed;"></i>Block-wise Allottee Distribution</h6>
-            <p class="chart-sub">Number of allottees per block — showing occupancy, hand-over, and transfer status</p>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h6 class="section-title mb-0"><i class="bi bi-bar-chart-fill me-2" style="color:#7c3aed;"></i>Block-wise Allottee Distribution</h6>
+                    <p class="chart-sub mb-0 mt-1">Number of allottees per block — showing occupancy, hand-over, and transfer status</p>
+                </div>
+                <select id="blockCategoryFilter" class="form-select form-select-sm" style="width: 150px; font-weight: 600;">
+                    <option value="B">Category B (24 Blocks)</option>
+                    <option value="E">Category E (19 Blocks)</option>
+                </select>
+            </div>
             <div id="blockBar"></div>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="chart-card" style="height:100%;">
+        <div class="chart-card h-100">
             <h6 class="section-title"><i class="bi bi-table me-2"></i>Block-wise Summary Table</h6>
-            <div class="table-responsive" style="max-height:340px;overflow-y:auto;">
+            <div class="table-responsive">
                 <table class="table table-sm data-table mb-0" style="font-size:11px;">
                     <thead>
                         <tr>
@@ -291,23 +398,8 @@
                             <th class="text-end">Transferred</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach($blockData as $blk)
-                        <tr>
-                            <td><strong>Block {{ $blk->block_no }}</strong></td>
-                            <td class="text-end">{{ number_format($blk->total) }}</td>
-                            <td class="text-end">{{ number_format($blk->handed_over) }}</td>
-                            <td class="text-end">{{ number_format($blk->temp_occ) }}</td>
-                            <td class="text-end">{{ number_format($blk->transferred) }}</td>
-                        </tr>
-                        @endforeach
-                        <tr style="background:#0f4423;color:#fff;font-weight:800;">
-                            <td>TOTAL</td>
-                            <td class="text-end">{{ number_format($totalAllottees) }}</td>
-                            <td class="text-end">{{ number_format($totalHandedOver) }}</td>
-                            <td class="text-end">{{ number_format($totalTempOcc) }}</td>
-                            <td class="text-end">{{ number_format($totalTransferred) }}</td>
-                        </tr>
+                    <tbody id="blockTableBody">
+                        <!-- Rendered via JS -->
                     </tbody>
                 </table>
             </div>
@@ -315,54 +407,7 @@
     </div>
 </div>
 
-{{-- ===== POLICY LOGIC SUMMARY TABLE ===== --}}
-<div class="section-heading"><i class="bi bi-clipboard-data-fill text-success me-2"></i>Summary by Policy Logic <small style="font-weight:400;font-size:12px;">(Based on Possession Date)</small></div>
-<div class="chart-card mb-3">
-    <div class="table-responsive">
-        <table class="table data-table mb-0" style="font-size:13px;">
-            <thead>
-                <tr>
-                    <th>Policy Logic</th><th class="text-end">No. of Allottees</th><th class="text-end">%</th>
-                    <th class="text-end">Monthly Billing (Rs.)</th><th class="text-end">Watch & Ward (Rs.)</th><th class="text-end">Total (Rs.)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="badge" style="background:#fef3c7;color:#92400e;">Before {{ date('d-m-Y', strtotime($wwCutoff)) }}</span> — No W&W</td>
-                    <td class="text-end">{{ number_format($policyBefore['count']) }}</td>
-                    <td class="text-end">{{ $totalAllottees > 0 ? round($policyBefore['count']/$totalAllottees*100,2) : 0 }}%</td>
-                    <td class="text-end">{{ number_format($policyBefore['monthly']) }}</td>
-                    <td class="text-end">—</td>
-                    <td class="text-end fw-600">{{ number_format($policyBefore['monthly']) }}</td>
-                </tr>
-                <tr>
-                    <td><span class="badge" style="background:#dcfce7;color:#166534;">On / After {{ date('d-m-Y', strtotime($wwCutoff)) }}</span> — W&W Applicable</td>
-                    <td class="text-end">{{ number_format($policyAfter['count']) }}</td>
-                    <td class="text-end">{{ $totalAllottees > 0 ? round($policyAfter['count']/$totalAllottees*100,2) : 0 }}%</td>
-                    <td class="text-end">{{ number_format($policyAfter['monthly']) }}</td>
-                    <td class="text-end">{{ number_format($policyAfter['ww']) }}</td>
-                    <td class="text-end fw-600">{{ number_format($policyAfter['monthly'] + $policyAfter['ww']) }}</td>
-                </tr>
-                <tr>
-                    <td><span class="badge" style="background:#ede9fe;color:#5b21b6;">Possession Date NULL</span> — W&W Applicable</td>
-                    <td class="text-end">{{ number_format($policyNull['count']) }}</td>
-                    <td class="text-end">{{ $totalAllottees > 0 ? round($policyNull['count']/$totalAllottees*100,2) : 0 }}%</td>
-                    <td class="text-end">{{ number_format($policyNull['monthly']) }}</td>
-                    <td class="text-end">{{ number_format($policyNull['ww']) }}</td>
-                    <td class="text-end fw-600">{{ number_format($policyNull['monthly'] + $policyNull['ww']) }}</td>
-                </tr>
-                <tr style="background:#0f4423;color:#fff;font-weight:800;">
-                    <td>TOTAL</td>
-                    <td class="text-end">{{ number_format($policyTotal['count']) }}</td>
-                    <td class="text-end">100%</td>
-                    <td class="text-end">{{ number_format($policyTotal['monthly']) }}</td>
-                    <td class="text-end">{{ number_format($policyTotal['ww']) }}</td>
-                    <td class="text-end">{{ number_format($policyTotal['monthly'] + $policyTotal['ww']) }}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+
 
 {{-- ===== TOP DEFAULTERS ===== --}}
 <div class="section-heading"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Top {{ $defaulters->count() }} Defaulters <small style="font-weight:400;font-size:12px;">≥ {{ $threshold }} months overdue</small></div>
@@ -387,7 +432,11 @@
                     <td>{{ $d->file_no }}</td>
                     <td><span class="badge {{ $d->category==='B'?'badge-b':'badge-e' }}">{{ $d->category }}</span></td>
                     <td>Blk {{ $d->block_no }} / Flat {{ $d->flat_no }}</td>
-                    <td><span class="badge bg-danger">{{ $d->due_months }} mo</span></td>
+                    <td><span class="badge bg-danger">{{ $d->due_months }} mo</span>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ min(100, ($d->due_months / 12) * 100) }}%;"></div>
+                        </div>
+                    </td>
                     <td>Rs. {{ number_format($d->maintenance_charges) }}</td>
                     <td>Rs. {{ number_format($d->watch_ward_charges) }}</td>
                     <td style="color:#dc2626;">Rs. {{ number_format($d->fine) }}</td>
@@ -449,13 +498,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 1. Category Donut
     new ApexCharts(document.querySelector('#donutCategory'), {
-        chart: { type: 'donut', height: 240 },
+        chart: { 
+            type: 'donut', 
+            height: 250,
+            dropShadow: { enabled: true, top: 4, left: 0, blur: 5, color: '#000', opacity: 0.1 }
+        },
         series: [{{ round($billingByCategory['B']) }}, {{ round($billingByCategory['E']) }}],
         labels: ['Cat B ({{ $areaB }} Sq Ft)', 'Cat E ({{ $areaE }} Sq Ft)'],
         colors: [phaBlue, phaGreen],
-        legend: { position: 'bottom', fontSize: '11px' },
-        dataLabels: { enabled: true, formatter: v => v.toFixed(1)+'%' },
-        plotOptions: { pie: { donut: { size: '68%' } } },
+        legend: { position: 'bottom', fontSize: '12px', fontWeight: 600, markers: { radius: 12 } },
+        dataLabels: { 
+            enabled: true, 
+            formatter: v => v.toFixed(1)+'%',
+            style: { fontSize: '12px', fontWeight: 'bold', colors: ['#fff'] },
+            dropShadow: { enabled: true, top: 1, left: 1, blur: 1, color: '#000', opacity: 0.4 }
+        },
+        plotOptions: { 
+            pie: { 
+                donut: { 
+                    size: '72%',
+                    labels: {
+                        show: true,
+                        name: { show: true, fontSize: '11px', color: '#64748b' },
+                        value: { show: true, fontSize: '16px', fontWeight: 800, formatter: v => 'Rs. '+(v/1000000).toFixed(1)+'M' },
+                        total: { show: true, showAlways: true, label: 'Total Billed', fontSize: '11px', fontWeight: 600, formatter: function (w) { return 'Rs. '+((w.globals.seriesTotals.reduce((a, b) => a + b, 0))/1000000).toFixed(1)+'M' } }
+                    }
+                } 
+            } 
+        },
+        stroke: { show: true, colors: '#fff', width: 2 },
         tooltip: { y: { formatter: v => 'Rs. '+v.toLocaleString() } }
     }).render();
 
@@ -463,19 +534,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const trendData = @json($trendData);
     if (trendData && trendData.length > 0) {
         new ApexCharts(document.querySelector('#trendChart'), {
-            chart: { type: 'line', height: 200, toolbar: { show: false } },
+            chart: { type: 'area', height: 210, toolbar: { show: false } },
             series: [
+                { name: 'Total', data: trendData.map(d => d.total) },
                 { name: 'Cat B', data: trendData.map(d => d.B) },
                 { name: 'Cat E', data: trendData.map(d => d.E) },
-                { name: 'Total', data: trendData.map(d => d.total) },
             ],
-            xaxis: { categories: trendData.map(d => d.label), labels: { style: { fontSize: '10px' } } },
-            colors: [phaBlue, phaGreen, phaAmber],
-            stroke: { curve: 'smooth', width: [2,2,3] },
-            markers: { size: 3 },
-            legend: { position: 'top', fontSize: '11px', height: 30 },
-            grid: { borderColor: '#f1f5f9', padding: { left: 0, right: 0 } },
-            yaxis: { labels: { formatter: v => 'Rs.'+(v/1000000).toFixed(1)+'M', style: { fontSize: '10px' } } },
+            xaxis: { categories: trendData.map(d => d.label), labels: { style: { fontSize: '10px', fontWeight: 600, colors: '#64748b' } } },
+            colors: [phaAmber, phaBlue, phaGreen],
+            stroke: { curve: 'smooth', width: [3, 2, 2] },
+            fill: { 
+                type: 'gradient', 
+                gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 90, 100] } 
+            },
+            markers: { size: 4, colors: ['#fff'], strokeColors: [phaAmber, phaBlue, phaGreen], strokeWidth: 2, hover: { size: 6 } },
+            legend: { position: 'top', fontSize: '12px', fontWeight: 600, markers: { radius: 12 } },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { left: 10, right: 10 } },
+            yaxis: { labels: { formatter: v => 'Rs.'+(v/1000000).toFixed(1)+'M', style: { fontSize: '10px', fontWeight: 600, colors: '#64748b' } } },
             tooltip: { y: { formatter: v => 'Rs. '+v.toLocaleString() } },
             dataLabels: { enabled: false }
         }).render();
@@ -485,37 +560,184 @@ document.addEventListener('DOMContentLoaded', function () {
     const cityData = @json($cityData);
     if (cityData && cityData.length > 0) {
         new ApexCharts(document.querySelector('#cityBar'), {
-            chart: { type: 'bar', height: cityData.length * 28 + 60, toolbar: { show: false } },
-            plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '70%' } },
+            chart: { type: 'bar', height: cityData.length * 32 + 60, toolbar: { show: false } },
+            plotOptions: { 
+                bar: { 
+                    horizontal: true, 
+                    borderRadius: 4, 
+                    barHeight: '55%',
+                    dataLabels: { position: 'bottom' }
+                } 
+            },
             series: [{ name: 'Allottees', data: cityData.map(c => c.count) }],
-            xaxis: { categories: cityData.map(c => c.city || 'Unknown'), labels: { style: { fontSize: '11px' } } },
-            yaxis: { labels: { style: { fontSize: '11px' } } },
-            colors: [phaGreen],
-            dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#fff'] } },
+            xaxis: { categories: cityData.map(c => c.city || 'Unknown'), labels: { style: { fontSize: '11px', colors: '#64748b' } } },
+            yaxis: { labels: { style: { fontSize: '11px', fontWeight: 600, colors: '#1e293b' } } },
+            colors: ['#0ea5e9'],
+            fill: { type: 'gradient', gradient: { shade: 'light', type: 'vertical', shadeIntensity: 0.25, gradientToColors: ['#38bdf8'], inverseColors: true, opacityFrom: 1, opacityTo: 1, stops: [0, 100] } },
+            dataLabels: { enabled: true, textAnchor: 'start', style: { fontSize: '11px', fontWeight: 700, colors: ['#fff'] }, offsetX: 8, dropShadow: { enabled: true, top: 1, left: 1, blur: 1, color: '#000', opacity: 0.3 } },
             grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
-            tooltip: { y: { formatter: v => v.toLocaleString() + ' allottees' } }
+            tooltip: { theme: 'light', y: { formatter: v => v.toLocaleString() + ' allottees' } }
         }).render();
     }
 
     // 4. Block-wise Grouped Bar Chart
-    const blockData = @json($blockData);
-    if (blockData && blockData.length > 0) {
-        new ApexCharts(document.querySelector('#blockBar'), {
-            chart: { type: 'bar', height: Math.max(300, blockData.length * 32 + 60), toolbar: { show: false } },
-            plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '60%', dataLabels: { position: 'top' } } },
+    const blockDataAll = @json($blockData);
+    let blockChart = null;
+
+    function renderBlockChart(category) {
+        const blockData = blockDataAll.filter(b => b.category === category);
+        
+        // 1. Render Chart
+        const options = {
+            chart: { type: 'bar', height: Math.max(300, blockData.length * 36 + 60), toolbar: { show: false } },
+            plotOptions: { 
+                bar: { 
+                    horizontal: true, 
+                    borderRadius: 4, 
+                    barHeight: '65%',
+                    dataLabels: { position: 'top' } 
+                } 
+            },
             series: [
                 { name: 'Total Allottees', data: blockData.map(b => b.total) },
                 { name: 'Handed Over',     data: blockData.map(b => b.handed_over) },
                 { name: 'Temp. Occupancy', data: blockData.map(b => b.temp_occ) },
                 { name: 'Transferred',     data: blockData.map(b => b.transferred) },
             ],
-            xaxis: { categories: blockData.map(b => 'Block ' + b.block_no), labels: { style: { fontSize: '10px' } } },
-            yaxis: { labels: { style: { fontSize: '11px' } } },
+            xaxis: { categories: blockData.map(b => 'Block ' + b.block_no), labels: { style: { fontSize: '11px', colors: '#64748b' } } },
+            yaxis: { labels: { style: { fontSize: '12px', fontWeight: 600, colors: '#1e293b' } } },
             colors: [phaGreen, phaBlue, phaAmber, '#7c3aed'],
-            legend: { position: 'top', fontSize: '11px' },
+            legend: { position: 'top', fontSize: '12px', fontWeight: 600, markers: { radius: 12 } },
             dataLabels: { enabled: false },
-            grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
-            tooltip: { y: { formatter: v => v.toLocaleString() + ' units' } }
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+            tooltip: { theme: 'light', y: { formatter: v => v.toLocaleString() + ' units' } }
+        };
+
+        if (blockChart) {
+            blockChart.destroy();
+        }
+        blockChart = new ApexCharts(document.querySelector('#blockBar'), options);
+        blockChart.render();
+        
+        // 2. Render Table
+        const tbody = document.getElementById('blockTableBody');
+        let html = '';
+        let sTotal = 0, sHanded = 0, sTemp = 0, sTrans = 0;
+        
+        blockData.forEach(b => {
+            sTotal += parseInt(b.total);
+            sHanded += parseInt(b.handed_over);
+            sTemp += parseInt(b.temp_occ);
+            sTrans += parseInt(b.transferred);
+            
+            html += `<tr>
+                <td><strong>Cat-${b.category} Blk ${b.block_no}</strong></td>
+                <td class="text-end">${parseInt(b.total).toLocaleString()}</td>
+                <td class="text-end">${parseInt(b.handed_over).toLocaleString()}</td>
+                <td class="text-end">${parseInt(b.temp_occ).toLocaleString()}</td>
+                <td class="text-end">${parseInt(b.transferred).toLocaleString()}</td>
+            </tr>`;
+        });
+        
+        // Add Total Row
+        html += `<tr style="background:#0f4423;color:#fff;font-weight:800;">
+            <td>TOTAL</td>
+            <td class="text-end">${sTotal.toLocaleString()}</td>
+            <td class="text-end">${sHanded.toLocaleString()}</td>
+            <td class="text-end">${sTemp.toLocaleString()}</td>
+            <td class="text-end">${sTrans.toLocaleString()}</td>
+        </tr>`;
+        
+        tbody.innerHTML = html;
+    }
+
+    if (blockDataAll && blockDataAll.length > 0) {
+        // Init with Cat B
+        renderBlockChart('B');
+
+        document.getElementById('blockCategoryFilter').addEventListener('change', function(e) {
+            renderBlockChart(e.target.value);
+        });
+    }
+
+    // 5. Financial Recovery Gauge
+    const totalBilled = {{ $totalMonthlyBilling * 12 }}; // Using estimated yearly as base for example
+    const totalPaid = {{ $totalPaid }};
+    const recoveryPct = totalBilled > 0 ? (totalPaid / totalBilled * 100) : 0;
+    
+    new ApexCharts(document.querySelector('#recoveryGauge'), {
+        chart: { type: 'radialBar', height: 260 },
+        series: [recoveryPct.toFixed(1)],
+        plotOptions: {
+            radialBar: {
+                startAngle: -135, endAngle: 135,
+                hollow: { size: '65%' },
+                track: { background: '#e2e8f0', strokeWidth: '100%' },
+                dataLabels: {
+                    name: { show: true, fontSize: '13px', color: '#64748b', offsetY: -10 },
+                    value: { show: true, fontSize: '28px', fontWeight: 800, color: '#1B6B35', formatter: v => v + '%' }
+                }
+            }
+        },
+        fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [[{offset: 0, color: '#dc2626'}, {offset: 50, color: '#d97706'}, {offset: 100, color: '#059669'}]] } },
+        stroke: { lineCap: 'round' },
+        labels: ['Recovery Rate']
+    }).render();
+
+    // 6. Due Months Risk Histogram
+    const monthsData = @json($monthsDistribution);
+    if (monthsData && monthsData.length > 0) {
+        new ApexCharts(document.querySelector('#dueMonthsHistogram'), {
+            chart: { type: 'bar', height: 220, toolbar: { show: false } },
+            series: [{ name: 'Allottees', data: monthsData.map(d => d.count) }],
+            xaxis: { categories: monthsData.map(d => d.due_months + (d.due_months == 1 ? ' Mo' : ' Mos')), title: { text: 'Months Overdue' } },
+            yaxis: { title: { text: 'Number of Allottees' } },
+            colors: ['#dc2626'],
+            plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
+            dataLabels: { enabled: true, style: { fontSize: '10px' } },
+            grid: { borderColor: '#f1f5f9' },
+            tooltip: { y: { formatter: v => v + ' allottees' } }
+        }).render();
+    }
+
+    // 7. BPS Demographic Distribution
+    const bpsData = @json($bpsDistribution);
+    if (bpsData && bpsData.length > 0) {
+        new ApexCharts(document.querySelector('#bpsChart'), {
+            chart: { type: 'bar', height: 280, toolbar: { show: false } },
+            series: [{ name: 'Allottees', data: bpsData.map(d => d.count) }],
+            xaxis: { categories: bpsData.map(d => 'BPS ' + d.bps) },
+            colors: ['#8b5cf6'],
+            plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+            dataLabels: { enabled: true, style: { fontSize: '10px' } },
+            grid: { borderColor: '#f1f5f9' },
+            tooltip: { y: { formatter: v => v + ' allottees' } }
+        }).render();
+    }
+
+    // 8. Historical Possession Timeline
+    const possessionData = @json($possessionTimeline);
+    if (possessionData && possessionData.length > 0) {
+        // Calculate cumulative
+        let cumulative = 0;
+        const cumulativeData = possessionData.map(d => {
+            cumulative += d.count;
+            return cumulative;
+        });
+        
+        new ApexCharts(document.querySelector('#possessionChart'), {
+            chart: { type: 'area', height: 260, toolbar: { show: false } },
+            series: [
+                { name: 'Cumulative Handovers', data: cumulativeData },
+                { name: 'Monthly Handovers', data: possessionData.map(d => d.count) }
+            ],
+            xaxis: { categories: possessionData.map(d => d.month), tickAmount: 10 },
+            colors: ['#0ea5e9', '#38bdf8'],
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: [3, 2] },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+            tooltip: { x: { format: 'MMM yyyy' } }
         }).render();
     }
 });

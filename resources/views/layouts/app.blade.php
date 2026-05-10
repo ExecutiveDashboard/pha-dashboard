@@ -238,41 +238,77 @@
     <aside class="sidebar">
         <div class="sidebar-brand">
             <div class="logos-row">
-                <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt of Pakistan" title="Government of Pakistan">
-                <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Foundation" title="PHA Foundation">
+                <div style="background:#fff;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                    <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Logo" style="width:34px;height:34px;object-fit:contain;">
+                </div>
+                <div style="background:#fff;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                    <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt of Pakistan" style="width:34px;height:34px;object-fit:contain;">
+                </div>
             </div>
-            <h6>Punjab Housing Authority</h6>
-            <small>Ministry of Housing & Works, Islamabad</small>
-            <small style="color:rgba(255,255,255,0.35);">I-16/3 Maintenance Dashboard</small>
+            <h6 style="font-size:16px; margin-top:4px;">PHA Foundation</h6>
+            <small>Ministry of Housing & Works</small>
+
+            <!-- Project Switcher -->
+            <div class="dropdown w-100 px-3 mt-3">
+                @php $activeProject = \App\Models\Project::active(); @endphp
+                <button class="btn btn-sm w-100 text-start text-white dropdown-toggle" type="button" data-bs-toggle="dropdown" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); font-size: 11px;">
+                    <i class="bi bi-building me-1"></i> {{ $activeProject ? $activeProject->name : 'I-16/3 Islamabad' }}
+                </button>
+                <ul class="dropdown-menu w-100 shadow" style="font-size: 12px;">
+                    <li class="dropdown-header text-muted" style="font-size: 10px;">SWITCH PROJECT</li>
+                    @foreach(\App\Models\Project::all() as $proj)
+                        <li>
+                            <form action="{{ route('projects.switch') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="project_id" value="{{ $proj->id }}">
+                                <button type="submit" class="dropdown-item {{ $proj->is_active ? 'active fw-bold' : '' }}">
+                                    {{ $proj->name }}
+                                </button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
         <nav class="sidebar-nav">
             <div class="nav-section-title">Main</div>
             <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="bi bi-grid-1x2-fill"></i> Overview
             </a>
-            <a href="{{ route('allottees.index') }}" class="nav-link {{ request()->routeIs('allottees.*') && !request()->routeIs('allottees.*defaulter*') ? 'active' : '' }}">
+            <a href="{{ route('allottees.index') }}" class="nav-link {{ request()->routeIs('allottees.*') && !request()->routeIs('allottees.*defaulter*') && !request()->routeIs('blocks.visual') ? 'active' : '' }}">
                 <i class="bi bi-people-fill"></i> Allottee List
+            </a>
+            <a href="{{ route('blocks.visual') }}" class="nav-link {{ request()->routeIs('blocks.visual') ? 'active' : '' }}">
+                <i class="bi bi-building-fill"></i> Block Visuals
             </a>
             <a href="{{ route('allottees.index', ['defaulter' => 1]) }}" class="nav-link {{ request()->get('defaulter') == 1 ? 'active' : '' }}">
                 <i class="bi bi-exclamation-triangle-fill"></i> Defaulters
             </a>
 
-            <div class="nav-section-title mt-3">Billing</div>
+            <div class="nav-section-title mt-3">Billing & Payments</div>
+            <a href="{{ route('monthly-bills.index') }}" class="nav-link {{ request()->routeIs('monthly-bills.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-check-fill"></i> Monthly Bills
+            </a>
             <a href="{{ route('bills.search') }}" class="nav-link {{ request()->routeIs('bills.search') ? 'active' : '' }}">
                 <i class="bi bi-search"></i> Bill Search
             </a>
-            <a href="{{ route('allottees.index') }}" class="nav-link" title="Go to Allottees and click View to generate bill">
-                <i class="bi bi-receipt"></i> Generate Bill
+
+            <div class="nav-section-title mt-3">Communications</div>
+            <a href="{{ route('notifications.index') }}" class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
+                <i class="bi bi-whatsapp"></i> Bulk SMS / WhatsApp
             </a>
 
             <div class="nav-section-title mt-3">Portal</div>
-            <a href="{{ route('portal.login') }}" class="nav-link {{ request()->routeIs('portal.*') ? 'active' : '' }}">
-                <i class="bi bi-person-badge-fill"></i> Allottee Portal
+            <a href="{{ route('portal.login') }}" class="nav-link {{ request()->routeIs('portal.*') ? 'active' : '' }}" target="_blank">
+                <i class="bi bi-person-badge-fill"></i> Allottee Portal <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: 10px; width: auto;"></i>
             </a>
 
             <div class="nav-section-title mt-3">Management</div>
             <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
                 <i class="bi bi-sliders2"></i> Settings & Criteria
+            </a>
+            <a href="{{ route('projects.index') }}" class="nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
+                <i class="bi bi-building-gear"></i> Projects Setup
             </a>
         </nav>
         <div class="sidebar-footer">
@@ -292,6 +328,20 @@
         <div class="topbar">
             <h5>@yield('page-title', 'Dashboard')</h5>
             <div class="d-flex align-items-center gap-3">
+                @php
+                    $projects = \App\Models\Project::all();
+                    $activeProject = \App\Models\Project::active();
+                @endphp
+                <form action="{{ route('projects.switch') }}" method="POST" class="d-flex align-items-center bg-white border rounded px-2 py-1 shadow-sm" style="min-width:200px;">
+                    @csrf
+                    <i class="bi bi-building ms-1 me-2 text-muted" style="font-size:12px;"></i>
+                    <select name="project_id" class="form-select form-select-sm border-0 fw-bold" style="background: transparent; cursor: pointer; font-size:12px;" onchange="this.form.submit()">
+                        @foreach($projects as $p)
+                            <option value="{{ $p->id }}" {{ $activeProject && $activeProject->id == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>
+                        @endforeach
+                    </select>
+                </form>
+
                 <span class="badge" style="background:#dcfce7;color:#166534;font-size:11px;padding:5px 10px;">
                     <i class="bi bi-circle-fill me-1" style="font-size:7px;"></i> Live Data
                 </span>

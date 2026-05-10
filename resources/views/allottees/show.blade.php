@@ -14,6 +14,12 @@
         <a href="{{ route('bills.pdf', $allottee) }}" class="btn btn-sm btn-danger">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i>Download PDF
         </a>
+        <a href="{{ route('bills.challan', $allottee) }}" class="btn btn-sm btn-primary" target="_blank">
+            <i class="bi bi-printer-fill me-1"></i>Generate Bank Challan (4-Part)
+        </a>
+        <a href="{{ route('allottees.edit', $allottee) }}" class="btn btn-sm btn-outline-dark ms-auto">
+            <i class="bi bi-pencil-square me-1"></i>Edit Allottee Data
+        </a>
     </div>
 
     <div class="row g-3">
@@ -182,9 +188,9 @@
                 <form method="POST" action="{{ route('allottees.payment', $allottee) }}" class="row g-3">
                     @csrf
                     <div class="col-md-3">
-                        <label class="form-label" style="font-size:12px;font-weight:600;">Amount Paid (Rs.)</label>
+                        <label class="form-label" style="font-size:12px;font-weight:600;">Amount Received (Rs.)</label>
                         <input type="number" name="amount_paid" class="form-control" step="0.01" min="0"
-                            value="{{ $allottee->amount_paid }}" required>
+                            placeholder="e.g. 5000" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" style="font-size:12px;font-weight:600;">Payment Mode</label>

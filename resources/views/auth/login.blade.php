@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — PHA Maintenance Dashboard</title>
+    <title>Admin Login - PHAF I-16/3 Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,11 +12,17 @@
         * { font-family: 'Inter', sans-serif; }
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f4423 0%, #1B6B35 50%, #2d8a4e 100%);
+            background: url('{{ asset('images/bg/login-bg.png') }}') center/cover no-repeat fixed;
             display: flex; align-items: center; justify-content: center;
             padding: 20px;
+            position: relative;
         }
-        .login-wrapper { width: 100%; max-width: 440px; }
+        body::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(15,68,35,0.85) 0%, rgba(27,107,53,0.7) 100%);
+            z-index: 1;
+        }
+        .login-wrapper { width: 100%; max-width: 440px; position: relative; z-index: 2; }
         .login-header { text-align: center; margin-bottom: 32px; color: #fff; }
         .login-header .pha-badge {
             background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
@@ -25,10 +31,12 @@
             padding: 6px 18px; border-radius: 50px; display: inline-block; margin-bottom: 16px;
         }
         .login-header h2 { font-weight: 800; font-size: 28px; margin-bottom: 6px; }
-        .login-header p { color: rgba(255,255,255,0.7); font-size: 14px; }
+        .login-header p { color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 500; }
         .login-card {
-            background: #fff; border-radius: 20px; padding: 40px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            border-radius: 24px; padding: 40px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.6);
         }
         .login-card h5 { font-weight: 700; color: #1a2332; font-size: 18px; margin-bottom: 6px; }
         .login-card .subtitle { color: #64748b; font-size: 13.5px; margin-bottom: 28px; }
@@ -56,9 +64,17 @@
 <body>
     <div class="login-wrapper">
         <div class="login-header">
-            <div class="pha-badge">PHA — PUNJAB HOUSING AUTHORITY</div>
-            <h2>Maintenance Dashboard</h2>
-            <p>I-16/3 Islamabad — Allottee Financial System</p>
+            <div style="display:flex;justify-content:center;align-items:center;gap:20px;margin-bottom:20px;">
+                <div style="background:#fff;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;padding:5px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+                    <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Logo" style="width:50px;height:50px;object-fit:contain;">
+                </div>
+                <div style="background:#fff;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;padding:5px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+                    <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt Logo" style="width:50px;height:50px;object-fit:contain;">
+                </div>
+            </div>
+            <h2 style="font-weight:900;letter-spacing:1px;font-size:32px;">PHA Foundation</h2>
+            <div class="pha-badge" style="margin-top:10px;">MAINTENANCE DASHBOARD</div>
+            <p>Ministry of Housing & Works — I-16/3 Islamabad</p>
         </div>
 
         <div class="login-card">
@@ -96,7 +112,7 @@
             </form>
         </div>
 
-        <p class="footer-note">© {{ date('Y') }} Punjab Housing Authority. All rights reserved.</p>
+        <p class="footer-note">© {{ date('Y') }} PHA Foundation. All rights reserved.</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

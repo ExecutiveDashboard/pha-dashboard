@@ -62,8 +62,9 @@ class BillController extends Controller
         }
 
         // Logos as base64 for DomPDF
-        $govtLogoB64 = $this->logoBase64(public_path('images/logos/govt-pk.svg'),  'image/svg+xml');
-        $phaLogoB64  = $this->logoBase64(public_path('images/logos/pha-logo.svg'), 'image/svg+xml');
+        $govtLogoB64  = $this->logoBase64(public_path('images/logos/govt-pk.svg'),  'image/svg+xml');
+        $phaLogoB64   = $this->logoBase64(public_path('images/logos/pha-logo.svg'), 'image/svg+xml');
+        $oneLinkB64   = $this->logoBase64(public_path('images/logos/1link-logo.png'), 'image/png');
 
         return compact(
             'allottee',
@@ -71,7 +72,7 @@ class BillController extends Controller
             'monthlyRate', 'maintenance', 'ww', 'fine', 'total',
             'paid', 'pending', 'dueMonths', 'billMonth', 'lastPayment',
             'bankAccNo', 'bankName', 'bankBranch', 'qrData',
-            'qrSvg', 'qrCodeB64', 'govtLogoB64', 'phaLogoB64'
+            'qrSvg', 'qrCodeB64', 'govtLogoB64', 'phaLogoB64', 'oneLinkB64'
         );
     }
 
@@ -149,5 +150,47 @@ class BillController extends Controller
         $zip->close();
 
         return response()->download($zipPath, 'PHA_Bills_Bulk.zip')->deleteFileAfterSend(true);
+    }
+
+    /* ── GET /bills/{allottee}/challan  — download 4-part landscape challan ── */
+    public function challan(Allottee $allottee)
+    {
+        $data = $this->billData($allottee);
+        
+        // Add amount in words
+        $data['amountInWords'] = $this->numberToWords(floor($data['total']));
+
+        $pdf = Pdf::loadView('bills.challan', $data)
+            ->setPaper('a4', 'landscape')
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('margin_top', 10)
+            ->setOption('margin_bottom', 10)
+            ->setOption('margin_left', 10)
+            ->setOption('margin_right', 10);
+            
+        $filename = 'PHA-Challan-' . str_replace('/', '-', $allottee->file_no) . '.pdf';
+        return $pdf->stream($filename); // Stream instead of download for easy printing
+    }
+
+    /* ── Helper: Number to Words ── */
+    private function numberToWords($number)
+    {
+        if ($number == 0) return 'Zero';
+
+        $words = [
+            0 => '', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 6 => 'Six',
+            7 => 'Seven', 8 => 'Eight', 9 => 'Nine', 10 => 'Ten', 11 => 'Eleven', 12 => 'Twelve',
+            13 => 'Thirteen', 14 => 'Fourteen', 15 => 'Fifteen', 16 => 'Sixteen', 17 => 'Seventeen',
+            18 => 'Eighteen', 19 => 'Nineteen', 20 => 'Twenty', 30 => 'Thirty', 40 => 'Forty',
+            50 => 'Fifty', 60 => 'Sixty', 70 => 'Seventy', 80 => 'Eighty', 90 => 'Ninety'
+        ];
+
+        if ($number < 20) return $words[$number];
+        if ($number < 100) return $words[floor($number / 10) * 10] . ' ' . $words[$number % 10];
+        if ($number < 1000) return $words[floor($number / 100)] . ' Hundred ' . ($number % 100 == 0 ? '' : 'and ' . $this->numberToWords($number % 100));
+        if ($number < 100000) return $this->numberToWords(floor($number / 1000)) . ' Thousand ' . ($number % 1000 == 0 ? '' : ' ' . $this->numberToWords($number % 1000));
+        if ($number < 10000000) return $this->numberToWords(floor($number / 100000)) . ' Lakh ' . ($number % 100000 == 0 ? '' : ' ' . $this->numberToWords($number % 100000));
+        
+        return $this->numberToWords(floor($number / 10000000)) . ' Crore ' . ($number % 10000000 == 0 ? '' : ' ' . $this->numberToWords($number % 10000000));
     }
 }

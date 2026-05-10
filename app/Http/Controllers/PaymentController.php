@@ -16,12 +16,11 @@ class PaymentController extends Controller
             'payment_ref'  => 'nullable|string|max:100',
         ]);
 
-        $allottee->update([
-            'amount_paid'  => $request->amount_paid,
-            'payment_mode' => $request->payment_mode,
-            'payment_date' => $request->payment_date,
-            'payment_ref'  => $request->payment_ref,
-        ]);
+        $allottee->amount_paid += $request->amount_paid;
+        $allottee->payment_mode = $request->payment_mode;
+        $allottee->payment_date = $request->payment_date;
+        $allottee->payment_ref = $request->payment_ref;
+        $allottee->save();
 
         return back()->with('success', 'Payment recorded successfully for ' . $allottee->name);
     }

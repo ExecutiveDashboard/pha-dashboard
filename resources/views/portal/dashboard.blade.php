@@ -64,8 +64,8 @@
                 <i class="bi bi-person-fill"></i>
             </div>
             <div>
-                <h4 style="font-weight:800;margin:0;">{{ $allottee->name ?? 'N/A' }}</h4>
-                <div style="font-size:13px;color:#64748b;">CNIC: {{ $allottee->cnic ?? '—' }} &nbsp;|&nbsp; Cell: {{ $allottee->cell ?? '—' }}</div>
+                <h4 style="font-weight:800;margin:0;">{{ $allottee->display_name }}</h4>
+                <div style="font-size:13px;color:#64748b;">CNIC: {{ $allottee->display_cnic }} &nbsp;|&nbsp; Cell: {{ $allottee->cell ?? '—' }}</div>
                 <div class="mt-1">
                     <span class="badge" style="background:#dbeafe;color:#1d4ed8;">Category {{ $allottee->category }}</span>
                     <span class="badge ms-1" style="background:#f0f9f4;color:#1B6B35;">{{ $allottee->covered_area }} Sq Ft</span>
@@ -81,49 +81,83 @@
     </div>
 
     <div class="row g-3">
-        <!-- Bill Breakdown -->
+        <!-- Bill Breakdown / History -->
         <div class="col-md-6">
             <div class="allottee-card h-100">
-                <h6 style="font-weight:700;margin-bottom:16px;"><i class="bi bi-receipt me-2" style="color:#1B6B35;"></i>Your Bill Breakdown</h6>
-                <div class="bill-row">
-                    <span class="bill-label">Maintenance Charges</span>
-                    <span class="bill-value">Rs. {{ number_format($allottee->maintenance_charges) }}</span>
-                </div>
-                <div class="bill-row">
-                    <span class="bill-label">Watch & Ward Charges</span>
-                    <span class="bill-value">Rs. {{ number_format($allottee->watch_ward_charges) }}</span>
-                </div>
-                <div class="bill-row">
-                    <span class="bill-label">Delay Charges (10% Fine)</span>
-                    <span class="bill-value" style="color:#dc2626;">Rs. {{ number_format($allottee->fine) }}</span>
-                </div>
-                <div class="total-box mt-3">
-                    <div style="font-size:11px;opacity:0.8;">TOTAL PAYABLE</div>
-                    <div style="font-size:24px;font-weight:900;">Rs. {{ number_format($allottee->total_maintenance_charges) }}</div>
-                    <div style="font-size:11px;opacity:0.7;">{{ $allottee->due_months ?? 0 }} months overdue</div>
-                </div>
+                @if($hasMonthlyBills)
+                    <h6 style="font-weight:700;margin-bottom:16px;"><i class="bi bi-calendar3 me-2" style="color:#1B6B35;"></i>Monthly Bills History</h6>
+                    <div class="table-responsive">
+                        <table class="table mb-0" style="font-size: 12px; vertical-align: middle;">
+                            <thead>
+                                <tr>
+                                    <th class="text-muted border-0 pb-2">Month</th>
+                                    <th class="text-muted border-0 pb-2 text-end">Amount</th>
+                                    <th class="text-muted border-0 pb-2">Status</th>
+                                    <th class="text-muted border-0 pb-2 text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($monthlyBills as $mb)
+                                    <tr>
+                                        <td class="fw-bold">{{ \Carbon\Carbon::parse($mb->bill_month)->format('M Y') }}</td>
+                                        <td class="text-end fw-bold">Rs. {{ number_format($mb->total_amount) }}</td>
+                                        <td>
+                                            @if($mb->status === 'paid' || $mb->status === 'settled')
+                                                <span class="badge bg-success bg-opacity-25 text-success border border-success">Paid</span>
+                                            @else
+                                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Unpaid</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{{ route('portal.bill.monthly', $mb->bill_month) }}" class="btn btn-sm" style="background:#1B6B35;color:#fff;font-size:10px;padding:4px 8px;">View</a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <h6 style="font-weight:700;margin-bottom:16px;"><i class="bi bi-receipt me-2" style="color:#1B6B35;"></i>Your Bill Breakdown</h6>
+                    <div class="bill-row">
+                        <span class="bill-label">Maintenance Charges</span>
+                        <span class="bill-value">Rs. {{ number_format($allottee->maintenance_charges) }}</span>
+                    </div>
+                    <div class="bill-row">
+                        <span class="bill-label">Watch & Ward Charges</span>
+                        <span class="bill-value">Rs. {{ number_format($allottee->watch_ward_charges) }}</span>
+                    </div>
+                    <div class="bill-row">
+                        <span class="bill-label">Delay Charges (10% Fine)</span>
+                        <span class="bill-value" style="color:#dc2626;">Rs. {{ number_format($allottee->fine) }}</span>
+                    </div>
+                    <div class="total-box mt-3">
+                        <div style="font-size:11px;opacity:0.8;">TOTAL PAYABLE</div>
+                        <div style="font-size:24px;font-weight:900;">Rs. {{ number_format($allottee->total_maintenance_charges) }}</div>
+                        <div style="font-size:11px;opacity:0.7;">{{ $allottee->due_months ?? 0 }} months overdue</div>
+                    </div>
 
-                <!-- Payment Status -->
-                <div class="row g-2 mt-3">
-                    <div class="col-6">
-                        <div style="background:#dcfce7;border-radius:10px;padding:12px;text-align:center;">
-                            <div style="font-size:10px;font-weight:600;color:#166534;">AMOUNT PAID</div>
-                            <div style="font-size:18px;font-weight:800;color:#1B6B35;">Rs. {{ number_format($allottee->amount_paid) }}</div>
-                            @if($allottee->payment_date)
-                                <div style="font-size:10px;color:#166534;">{{ $allottee->payment_date->format('d M Y') }}</div>
-                            @endif
+                    <!-- Payment Status -->
+                    <div class="row g-2 mt-3">
+                        <div class="col-6">
+                            <div style="background:#dcfce7;border-radius:10px;padding:12px;text-align:center;">
+                                <div style="font-size:10px;font-weight:600;color:#166534;">AMOUNT PAID</div>
+                                <div style="font-size:18px;font-weight:800;color:#1B6B35;">Rs. {{ number_format($allottee->amount_paid) }}</div>
+                                @if($allottee->payment_date)
+                                    <div style="font-size:10px;color:#166534;">{{ $allottee->payment_date->format('d M Y') }}</div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div style="background:#fee2e2;border-radius:10px;padding:12px;text-align:center;">
+                                <div style="font-size:10px;font-weight:600;color:#991b1b;">AMOUNT PENDING</div>
+                                <div style="font-size:18px;font-weight:800;color:#dc2626;">Rs. {{ number_format($allottee->amount_pending) }}</div>
+                                @if($allottee->payment_mode)
+                                    <div style="font-size:10px;color:#991b1b;">via {{ ucfirst($allottee->payment_mode) }}</div>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div style="background:#fee2e2;border-radius:10px;padding:12px;text-align:center;">
-                            <div style="font-size:10px;font-weight:600;color:#991b1b;">AMOUNT PENDING</div>
-                            <div style="font-size:18px;font-weight:800;color:#dc2626;">Rs. {{ number_format($allottee->amount_pending) }}</div>
-                            @if($allottee->payment_mode)
-                                <div style="font-size:10px;color:#991b1b;">via {{ ucfirst($allottee->payment_mode) }}</div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
+                @endif
             </div>
         </div>
 

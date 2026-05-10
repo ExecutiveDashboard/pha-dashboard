@@ -283,19 +283,16 @@
     {{-- ── HEADER ── --}}
     <div class="bill-header">
         <div class="bill-header-top">
-            <div class="bill-logos">
-                <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt of Pakistan">
-                <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA">
+            <div class="bill-logos" style="width: 130px;">
+                <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHAF Logo" style="height: 70px; width: auto;">
             </div>
             <div class="bill-org-name">
                 <h2>GOVERNMENT OF PAKISTAN</h2>
-                <p>Ministry of Housing & Works — Punjab Housing Authority Foundation</p>
-                <p style="font-size:10px;opacity:0.7;">I-16/3 Islamabad Apartments — Maintenance Billing System</p>
+                <p>Pakistan Housing Authority Foundation (PHAF)</p>
+                <p style="font-size:10px;opacity:0.7;">Maintenance Billing System — I-16/3 Islamabad</p>
             </div>
-            <div class="bill-badge">
-                <div class="lbl">Bill Type</div>
-                <div class="val">MAINTENANCE</div>
-                <div style="font-size:9px;opacity:0.7;margin-top:2px;">Monthly Bill</div>
+            <div class="bill-badge" style="width: 130px; text-align: right; padding: 6px; background: transparent; border: none;">
+                <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt" style="height: 60px; width: auto; filter: brightness(0) invert(1);">
             </div>
         </div>
         <div class="bill-header-strip">
@@ -310,11 +307,11 @@
     <div class="allottee-strip">
         <div class="a-item">
             <div class="lbl">Allottee Name</div>
-            <div class="val">{{ $allottee->name ?? 'N/A' }}</div>
+            <div class="val">{{ $allottee->display_name }}</div>
         </div>
         <div class="a-item">
             <div class="lbl">CNIC</div>
-            <div class="val">{{ $allottee->cnic ?? '—' }}</div>
+            <div class="val">{{ $allottee->display_cnic }}</div>
         </div>
         <div class="a-item">
             <div class="lbl">Cell / Mobile</div>
@@ -357,15 +354,28 @@
                 </tr>
             </thead>
             <tbody>
+                @if($dueMonths > 1)
                 <tr>
                     <td>
-                        <strong>Maintenance Charges</strong>
+                        <strong>Previous Arrears (Maintenance)</strong>
+                        <div style="font-size:10px;color:#6b7280;">Past due balance for {{ $dueMonths - 1 }} month(s)</div>
+                    </td>
+                    <td class="text-center">Rs. {{ number_format($rate, 2) }}/Sq Ft</td>
+                    <td class="text-center">{{ $dueMonths - 1 }} month(s)</td>
+                    <td class="text-end"><strong>{{ number_format($maintenance - $monthlyRate, 2) }}</strong></td>
+                </tr>
+                @endif
+                @if($dueMonths > 0)
+                <tr>
+                    <td>
+                        <strong>Current Month Maintenance</strong>
                         <div style="font-size:10px;color:#6b7280;">{{ $allottee->covered_area }} Sq Ft × Rs. {{ number_format($rate, 2) }}/Sq Ft</div>
                     </td>
                     <td class="text-center">Rs. {{ number_format($rate, 2) }}/Sq Ft</td>
-                    <td class="text-center">{{ $dueMonths }} months</td>
-                    <td class="text-end"><strong>{{ number_format($maintenance, 2) }}</strong></td>
+                    <td class="text-center">1 month</td>
+                    <td class="text-end"><strong>{{ number_format($monthlyRate, 2) }}</strong></td>
                 </tr>
+                @endif
                 @if($ww > 0)
                 <tr>
                     <td>
@@ -469,47 +479,41 @@
         @endif
 
         {{-- HOW TO PAY --}}
-        <div class="bill-section-title">How To Pay — Payment Methods</div>
-        <div class="payment-methods">
-            {{-- Cash --}}
-            <div class="pay-method">
-                <div class="pm-title"><i class="bi bi-cash-stack me-1"></i>Cash Payment</div>
-                <div class="pm-info">
-                    <strong>Bank:</strong> {{ $bankName }}<br>
-                    <strong>Branch:</strong> {{ $bankBranch }}<br>
-                    <strong>Account No:</strong> {{ $bankAccNo }}<br>
-                    <strong>Title:</strong> PHA Foundation — Maintenance Fund<br>
-                    Present this bill at the bank counter.
-                </div>
-            </div>
-            {{-- Online --}}
-            <div class="pay-method online-pay">
-                <div class="pm-title"><i class="bi bi-phone-fill me-1"></i>Online / Raast / 1Link</div>
-                <div class="pm-info">
-                    <strong>Scan QR code</strong> using any banking app<br>
-                    <strong>Raast ID:</strong> {{ $bankAccNo }}<br>
-                    <strong>Reference:</strong> {{ $allottee->file_no }}<br>
-                    <strong>Amount:</strong> Rs. {{ number_format($pending, 2) }}<br>
-                    Share payment screenshot to PHA office.
-                </div>
-            </div>
+        <div class="bill-section-title">How To Pay — 1Bill e-Voucher Instructions</div>
+        
+        <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:8px; padding:14px; margin-bottom:14px; text-align:center;">
+            <div style="font-size:11px; font-weight:700; color:#166534; text-transform:uppercase; margin-bottom:4px;">1-Bill Consumer No.</div>
+            <div style="font-size:22px; font-weight:900; letter-spacing:2px; color:#1a2332;">PHAF-{{ preg_replace('/[^A-Za-z0-9]/', '', $allottee->block_no ?? 'X') }}{{ str_pad(preg_replace('/[^0-9]/', '', $allottee->flat_no ?? '0'), 3, '0', STR_PAD_LEFT) }}-{{ date('Ym') }}</div>
         </div>
 
-        {{-- QR CODE --}}
-        <div class="qr-section">
-            <div>
-                <canvas id="qrCanvas" style="width:100px;height:100px;"></canvas>
-            </div>
-            <div>
-                <div class="qr-title"><i class="bi bi-qr-code me-1"></i>Scan to Pay — Raast / 1Link</div>
-                <div class="qr-inst">
-                    1. Open your bank app (HBL, UBL, Meezan, JazzCash, Easypaisa, etc.)<br>
-                    2. Go to <strong>Scan & Pay</strong> or <strong>Raast</strong> section<br>
-                    3. Scan this QR code<br>
-                    4. Confirm amount: <strong>Rs. {{ number_format($pending, 2) }}</strong><br>
-                    5. Save confirmation & share with PHA office: <strong>{{ $allottee->cell ?? 'N/A' }}</strong>
+        <div style="background:#1B6B35; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:10px; border-radius:8px 8px 0 0;">
+            You can pay online using 1-Bill Consumer No. through following payment channels
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-top:none; text-align:center; font-size:11px; font-weight:bold; color:#475569; padding:8px; margin-bottom:14px; border-radius:0 0 8px 8px;">
+            easyPaisa &middot; JazzCash &middot; Mobile Banking &middot; Internet Banking &middot; Over the Counter
+        </div>
+
+        <div class="payment-methods" style="margin-top:0;">
+            <div class="pay-method" style="padding:0; overflow:hidden;">
+                <div style="background:#1B6B35; color:#fff; padding:10px; font-size:12px; font-weight:bold; text-align:center;">
+                    Paying Over the Counter (Cash Payment)
                 </div>
-                <div class="qr-label mt-2">QR Data: {{ $allottee->file_no }} | Acc: {{ $bankAccNo }}</div>
+                <div class="pm-info" style="padding:14px;">
+                    <strong>1.</strong> Present this Invoice to Bank Representative specifying 1-Bill Consumer No. to be paid through 1-Bill - Invoice.<br><br>
+                    <strong>2.</strong> Hand-over Cash to Representative.<br><br>
+                    <strong>3.</strong> Collect relevant Payment Receipt (Computer Printed Receipt or manual receipt with Bank Stamp) and its <strong>DONE.</strong>
+                </div>
+            </div>
+            
+            <div class="pay-method online-pay" style="padding:0; overflow:hidden;">
+                <div style="background:#1B6B35; color:#fff; padding:10px; font-size:12px; font-weight:bold; text-align:center;">
+                    Pay via Mobile Wallets / Internet / Mobile Banking
+                </div>
+                <div class="pm-info" style="padding:14px;">
+                    <strong>1.</strong> Login to your Mobile Wallet / Internet Banking / Mobile Banking Account.<br><br>
+                    <strong>2.</strong> Tap/Select <strong>1-Bill - Invoice</strong> option.<br><br>
+                    <strong>3.</strong> Enter 1-Bill Consumer No. and complete Transaction. You are <strong>DONE.</strong>
+                </div>
             </div>
         </div>
 
@@ -518,7 +522,7 @@
         <div style="background:#f9fafb;border:1px dashed #d1d5db;border-radius:6px;padding:10px 14px;margin-top:14px;display:flex;justify-content:space-between;align-items:flex-start;font-size:11px;">
             <div>
                 <div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:3px;">MAILING ADDRESS</div>
-                <div style="font-weight:600;color:#1a2332;">{{ $allottee->name ?? '' }}</div>
+                <div style="font-weight:600;color:#1a2332;">{{ $allottee->display_name }}</div>
                 <div style="color:#374151;">{{ $allottee->mailing_address }}</div>
             </div>
             <div style="text-align:right;">
