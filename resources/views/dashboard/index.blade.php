@@ -15,49 +15,119 @@
         </select>
     </form>
     
-    <form action="{{ route('monthly-bills.generate') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to generate bills for all allottees for this month? This will increment their due months and add to their arrears.');">
-        @csrf
-        <input type="hidden" name="month" value="{{ date('Y-m') }}">
-        <button type="submit" class="btn btn-sm text-white fw-bold shadow-sm" style="background: linear-gradient(135deg, #ef4444, #b91c1c); border-radius: 8px; border: none; padding: 6px 14px; transition: transform 0.2s, box-shadow 0.2s;">
-            <i class="bi bi-lightning-fill me-1"></i>Generate {{ date('M Y') }} Bills
-        </button>
-    </form>
+    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#generateBillsModal" style="background: linear-gradient(135deg, #C9A84C, #b49133); border-radius: 8px; border: none; padding: 8px 16px; transition: all 0.3s ease;">
+        <i class="bi bi-receipt me-1"></i>Generate {{ date('M Y') }} Bills
+    </button>
+</div>
+
+<!-- Bill Generation Modal -->
+<div class="modal fade" id="generateBillsModal" tabindex="-1" aria-labelledby="generateBillsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1B6B35, #0f4423); color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 20px;">
+        <h5 class="modal-title fw-bold" id="generateBillsModalLabel"><i class="bi bi-lightning-charge-fill me-2" style="color: #C9A84C;"></i>Generate Monthly Bills</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <h6 class="fw-bold text-dark mb-3">What happens when you generate bills?</h6>
+        <div class="d-flex mb-3">
+            <div class="me-3 text-success fs-3"><i class="bi bi-1-circle-fill"></i></div>
+            <div>
+                <strong class="text-dark">Due Months Incremented</strong>
+                <p class="text-muted mb-0" style="font-size: 13px;">Every allottee's "Due Months" will automatically increase by 1.</p>
+            </div>
+        </div>
+        <div class="d-flex mb-3">
+            <div class="me-3 text-success fs-3"><i class="bi bi-2-circle-fill"></i></div>
+            <div>
+                <strong class="text-dark">Arrears Updated</strong>
+                <p class="text-muted mb-0" style="font-size: 13px;">The monthly maintenance rate (Cat B or E) will be added to their total outstanding arrears.</p>
+            </div>
+        </div>
+        <div class="d-flex">
+            <div class="me-3 text-success fs-3"><i class="bi bi-3-circle-fill"></i></div>
+            <div>
+                <strong class="text-dark">Defaulter Status Re-evaluated</strong>
+                <p class="text-muted mb-0" style="font-size: 13px;">If their due months cross the threshold, they will be marked as a defaulter.</p>
+            </div>
+        </div>
+        
+        <div class="alert alert-warning mt-4 mb-0" style="font-size: 13px; border-radius: 8px;">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Warning:</strong> This action cannot be easily undone. Only generate bills once per month.
+        </div>
+      </div>
+      <div class="modal-footer bg-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+        <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+        <form action="{{ route('monthly-bills.generate') }}" method="POST" class="m-0">
+            @csrf
+            <input type="hidden" name="month" value="{{ date('Y-m') }}">
+            <button type="submit" class="btn btn-success fw-bold px-4" style="background: #1B6B35; border: none; border-radius: 8px;">Confirm Generation</button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
-/* Premium Dashboard Styling Enhancements */
+/* Premium Dashboard Styling Enhancements - Gold & Green Focus */
 .chart-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px -2px rgba(27, 107, 53, 0.05), 0 0 3px rgba(27, 107, 53, 0.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .chart-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px -5px rgba(27, 107, 53, 0.12), 0 8px 10px -6px rgba(27, 107, 53, 0.05);
+    border-color: rgba(201, 168, 76, 0.4);
 }
-.kpi-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.kpi-strip { display: flex; flex-wrap: wrap; gap: 12px; }
 .kpi-pill {
-    flex: 1; min-width: 130px; border-radius: 12px;
-    padding: 11px 14px; color: #fff; text-align: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    flex: 1; min-width: 140px; border-radius: 14px;
+    padding: 14px 16px; color: #fff; text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 .kpi-pill::after {
     content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-    background: linear-gradient(to bottom right, rgba(255,255,255,0.2), rgba(255,255,255,0));
+    background: linear-gradient(to bottom right, rgba(255,255,255,0.25), rgba(255,255,255,0));
     transform: rotate(30deg); pointer-events: none;
 }
-.kpi-pill:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
-.section-title { font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 4px; display: flex; align-items: center; letter-spacing: -0.2px; }
-.chart-sub { font-size: 11px; color: #64748b; margin-bottom: 12px; font-weight: 500; }
-.premium-section-heading {
-    margin: 24px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;
-    font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center;
+.kpi-pill:hover { 
+    transform: translateY(-4px); 
+    box-shadow: 0 12px 20px rgba(0,0,0,0.15); 
 }
+.section-title { 
+    font-size: 16px; font-weight: 800; color: #0f4423; margin-bottom: 6px; 
+    display: flex; align-items: center; letter-spacing: -0.3px; 
+}
+.chart-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; font-weight: 500; }
+.premium-section-heading {
+    margin: 32px 0 20px; padding-bottom: 10px; border-bottom: 2px solid rgba(201, 168, 76, 0.3);
+    font-size: 18px; font-weight: 800; color: #0f4423; display: flex; align-items: center;
+}
+.table-scrollable-container {
+    max-height: 280px; 
+    overflow-y: auto; 
+    border-radius: 8px; 
+    border: 1px solid #e2e8f0;
+}
+.table-scrollable-container thead th {
+    position: sticky; top: 0; z-index: 10; 
+    background: #1B6B35; color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.legend-box {
+    background: #f8fafc; border-radius: 8px; padding: 12px; font-size: 11px;
+    border: 1px dashed #cbd5e1;
+}
+.legend-item { display: flex; align-items: center; margin-bottom: 4px; }
+.legend-color { width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; }
 </style>
 
 {{-- ===== KPI STRIP ===== --}}
@@ -100,7 +170,7 @@
 
         {{-- Standard Charges Table --}}
         <div class="chart-card mb-3">
-            <h6 class="section-title"><i class="bi bi-table me-2"></i>Standard Charges <span class="badge-policy">As Per Policy</span></h6>
+            <h6 class="section-title"><i class="bi bi-table me-2"></i>Standard Charges <span class="badge-policy ms-2">As Per Policy</span> <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Shows the fixed monthly and yearly maintenance rates for Category B and E apartments."></i></h6>
             <table class="table table-sm table-bordered mb-2" style="font-size:12px;">
                 <thead style="background:#1B6B35;color:#fff;">
                     <tr>
@@ -130,7 +200,7 @@
 
         {{-- W&W Eligibility --}}
         <div class="chart-card">
-            <h6 class="section-title"><i class="bi bi-shield-check me-2"></i>Watch &amp; Ward Eligibility <span class="badge-policy">Rs. {{ number_format($wwAmount) }}/-</span></h6>
+            <h6 class="section-title"><i class="bi bi-shield-check me-2"></i>Watch &amp; Ward Eligibility <span class="badge-policy ms-2">Rs. {{ number_format($wwAmount) }}/-</span> <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Displays the number of allottees eligible for Watch & Ward charges based on their possession dates."></i></h6>
             @php $wwDate = date('d-m-Y', strtotime($wwCutoff)); @endphp
             <div class="row g-2 mt-1">
                 <div class="col-4">
@@ -173,7 +243,7 @@
     {{-- COL 2: Monthly Billing Donut + Trend --}}
     <div class="col-lg-4 col-md-6">
         <div class="chart-card mb-3">
-            <h6 class="section-title"><i class="bi bi-pie-chart-fill me-2" style="color:#1B6B35;"></i>Monthly Billing by Category</h6>
+            <h6 class="section-title"><i class="bi bi-pie-chart-fill me-2" style="color:#1B6B35;"></i>Monthly Billing by Category <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="A breakdown of expected monthly revenue divided between Category B and Category E."></i></h6>
             <p class="chart-sub">Total monthly charges — Cat B vs Cat E</p>
             <div id="donutCategory"></div>
             <div class="d-flex justify-content-around mt-2">
@@ -188,7 +258,7 @@
             </div>
         </div>
         <div class="chart-card">
-            <h6 class="section-title"><i class="bi bi-graph-up me-2" style="color:#7c3aed;"></i>Monthly Billing Trend (Estimated)</h6>
+            <h6 class="section-title"><i class="bi bi-graph-up me-2" style="color:#7c3aed;"></i>Monthly Billing Trend (Estimated) <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Tracks the estimated cumulative billing over the last 6 months."></i></h6>
             <p class="chart-sub">Cumulative monthly billing — Cat B &amp; E over last 6 months</p>
             <div id="trendChart"></div>
         </div>
@@ -197,7 +267,7 @@
     {{-- COL 3: Billing Summary + Policy Logic --}}
     <div class="col-lg-4 col-md-12">
         <div class="chart-card mb-3">
-            <h6 class="section-title"><i class="bi bi-calculator me-2" style="color:#d97706;"></i>Billing Summary <span class="badge-policy">Estimated</span></h6>
+            <h6 class="section-title"><i class="bi bi-calculator me-2" style="color:#d97706;"></i>Billing Summary <span class="badge-policy ms-2">Estimated</span> <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculates the total expected revenue including maintenance, Watch & Ward, and delay charges."></i></h6>
             <table class="table table-sm mb-0" style="font-size:12px;">
                 <tr><td class="text-muted">Total Monthly Maintenance (All)</td><td class="text-end fw-600">Rs. {{ number_format($totalMonthlyBilling) }}</td></tr>
                 <tr><td class="text-muted">Total Yearly Maintenance (All)</td><td class="text-end fw-600">Rs. {{ number_format($forecastYearly) }}</td></tr>
@@ -229,7 +299,7 @@
         </div>
 
         <div class="chart-card">
-            <h6 class="section-title"><i class="bi bi-file-text me-2" style="color:#475569;"></i>Policy & Calculation Logic</h6>
+            <h6 class="section-title"><i class="bi bi-file-text me-2" style="color:#475569;"></i>Policy & Calculation Logic <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Explains the exact mathematical formulas used to calculate the bills."></i></h6>
             <div class="policy-box" style="font-size:11px;line-height:1.7;">
                 <p><strong>1. Watch & Ward (Rs. {{ number_format($wwAmount) }}/-) applies if:</strong><br>
                    &nbsp;&nbsp;• Possession Date ≥ {{ date('d M Y', strtotime($wwCutoff)) }}<br>
@@ -248,7 +318,7 @@
 <div class="row g-3 mb-3">
     <div class="col-lg-4 col-md-6">
         <div class="chart-card h-100">
-            <h6 class="section-title"><i class="bi bi-speedometer2 me-2" style="color:#059669;"></i>Financial Recovery Rate</h6>
+            <h6 class="section-title"><i class="bi bi-speedometer2 me-2" style="color:#059669;"></i>Financial Recovery Rate <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Shows the percentage of the total billed amount that has been successfully collected."></i></h6>
             <p class="chart-sub">Percentage of total billed amount recovered</p>
             <div id="recoveryGauge" class="d-flex justify-content-center"></div>
             <div class="text-center mt-2">
@@ -259,7 +329,7 @@
     </div>
     <div class="col-lg-8 col-md-6">
         <div class="chart-card h-100">
-            <h6 class="section-title"><i class="bi bi-bar-chart-line-fill me-2" style="color:#dc2626;"></i>Due Months Risk Histogram</h6>
+            <h6 class="section-title"><i class="bi bi-bar-chart-line-fill me-2" style="color:#dc2626;"></i>Due Months Risk Histogram <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Categorizes allottees based on how many months they are overdue on their payments."></i></h6>
             <p class="chart-sub">Distribution of allottees by number of months overdue (Defaulter Curve)</p>
             <div id="dueMonthsHistogram"></div>
         </div>
@@ -272,7 +342,7 @@
 <div class="row g-3 mb-3">
     <div class="col-lg-7 col-md-12">
         <div class="chart-card">
-            <h6 class="section-title"><i class="bi bi-geo-alt-fill me-2" style="color:#d97706;"></i>City-wise Allottee Distribution</h6>
+            <h6 class="section-title"><i class="bi bi-geo-alt-fill me-2" style="color:#d97706;"></i>City-wise Allottee Distribution <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Shows the geographical distribution of allottees based on their registered mailing addresses."></i></h6>
             <p class="chart-sub">Number of allottees per city</p>
             <div id="cityBar"></div>
             <div class="mt-2 p-2" style="background:#fffbeb;border-radius:8px;font-size:11px;color:#92400e;">
@@ -283,7 +353,7 @@
     </div>
     <div class="col-lg-5 col-md-12">
         <div class="chart-card">
-            <h6 class="section-title"><i class="bi bi-table me-2"></i>City-wise Billing Table</h6>
+            <h6 class="section-title"><i class="bi bi-table me-2"></i>City-wise Billing Table <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Breaks down total expected monthly and yearly billing by city."></i></h6>
             <div class="table-responsive">
                 <table class="table table-sm data-table mb-0" style="font-size:12px;">
                     <thead>
@@ -315,14 +385,14 @@
 <div class="row g-3 mb-3">
     <div class="col-lg-5">
         <div class="chart-card h-100">
-            <h6 class="section-title"><i class="bi bi-radar me-2" style="color:#8b5cf6;"></i>BPS Demographic Distribution</h6>
+            <h6 class="section-title"><i class="bi bi-radar me-2" style="color:#8b5cf6;"></i>BPS Demographic Distribution <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Shows the breakdown of allottees by their Basic Pay Scale (BPS) grade."></i></h6>
             <p class="chart-sub">Spread of allottees across Basic Pay Scales</p>
             <div id="bpsChart"></div>
         </div>
     </div>
     <div class="col-lg-7">
         <div class="chart-card h-100">
-            <h6 class="section-title"><i class="bi bi-graph-up-arrow me-2" style="color:#0ea5e9;"></i>Historical Possession Timeline</h6>
+            <h6 class="section-title"><i class="bi bi-graph-up-arrow me-2" style="color:#0ea5e9;"></i>Historical Possession Timeline <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Tracks the cumulative number of apartments handed over over time."></i></h6>
             <p class="chart-sub">Cumulative trend of flats handed over</p>
             <div id="possessionChart"></div>
         </div>
@@ -373,7 +443,7 @@
         <div class="chart-card">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
-                    <h6 class="section-title mb-0"><i class="bi bi-bar-chart-fill me-2" style="color:#7c3aed;"></i>Block-wise Allottee Distribution</h6>
+                    <h6 class="section-title mb-0 w-100 d-flex"><i class="bi bi-bar-chart-fill me-2" style="color:#7c3aed;"></i>Block-wise Allottee Distribution <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Visualizes occupancy and transfer statuses across different apartment blocks."></i></h6>
                     <p class="chart-sub mb-0 mt-1">Number of allottees per block — showing occupancy, hand-over, and transfer status</p>
                 </div>
                 <select id="blockCategoryFilter" class="form-select form-select-sm" style="width: 150px; font-weight: 600;">
@@ -381,12 +451,22 @@
                     <option value="E">Category E (19 Blocks)</option>
                 </select>
             </div>
+            
+            <div class="legend-box mt-3 mb-2">
+                <div class="row g-2">
+                    <div class="col-md-3 col-6 legend-item"><div class="legend-color" style="background:#1B6B35;"></div> <strong>Total Units:</strong> All apartments</div>
+                    <div class="col-md-3 col-6 legend-item"><div class="legend-color" style="background:#2563eb;"></div> <strong>Handed Over:</strong> Keys given</div>
+                    <div class="col-md-3 col-6 legend-item"><div class="legend-color" style="background:#d97706;"></div> <strong>Temp. Occ:</strong> Temporary access</div>
+                    <div class="col-md-3 col-6 legend-item"><div class="legend-color" style="background:#7c3aed;"></div> <strong>Transferred:</strong> Ownership transferred</div>
+                </div>
+            </div>
+
             <div id="blockBar"></div>
         </div>
     </div>
     <div class="col-lg-4">
         <div class="chart-card h-100">
-            <h6 class="section-title"><i class="bi bi-table me-2"></i>Block-wise Summary Table</h6>
+            <h6 class="section-title"><i class="bi bi-table me-2"></i>Block-wise Summary Table <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Provides a tabular summary of the data shown in the block distribution chart."></i></h6>
             <div class="table-responsive">
                 <table class="table table-sm data-table mb-0" style="font-size:11px;">
                     <thead>
@@ -452,7 +532,7 @@
 {{-- ===== ALLOTTEE SAMPLE TABLE ===== --}}
 <div class="section-heading"><i class="bi bi-people-fill text-primary me-2"></i>Allottee Billing Data <small style="font-weight:400;font-size:12px;">(Top 15 by Total Payable)</small></div>
 <div class="chart-card mb-3">
-    <div class="table-responsive">
+    <div class="table-scrollable-container">
         <table class="table data-table mb-0" style="font-size:11px;">
             <thead>
                 <tr>
@@ -483,9 +563,9 @@
             </tbody>
         </table>
     </div>
-    <div class="mt-2" style="font-size:11px;color:#64748b;">
-        <i class="bi bi-info-circle me-1"></i>Note: All amounts are estimated as per current data. Actual amounts may vary based on final cutoff date and recoveries.
-        <a href="{{ route('allottees.index') }}" class="ms-3 btn btn-sm" style="background:#1B6B35;color:#fff;font-size:11px;">View All {{ number_format($totalAllottees) }} Allottees</a>
+    <div class="mt-3 d-flex justify-content-between align-items-center" style="font-size:11px;color:#64748b;">
+        <div><i class="bi bi-info-circle me-1"></i>Note: All amounts are estimated. Actuals vary based on recoveries.</div>
+        <a href="{{ route('allottees.index') }}" class="btn btn-sm" style="background:#1B6B35;color:#fff;font-size:12px; font-weight: 600; padding: 6px 16px; border-radius: 8px;">View All {{ number_format($totalAllottees) }} Allottees <i class="bi bi-arrow-right ms-1"></i></a>
     </div>
 </div>
 
@@ -494,6 +574,12 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
     const phaGreen='#1B6B35', phaBlue='#2563eb', phaAmber='#d97706';
 
     // 1. Category Donut
