@@ -24,55 +24,83 @@
         .sidebar {
             position: fixed; top: 0; left: 0; height: 100vh;
             width: var(--sidebar-w);
-            background: linear-gradient(175deg, #0a3018 0%, #0f4423 55%, #1a6332 100%);
+            background: #0b2114; /* Deep premium forest green */
+            background-image: radial-gradient(circle at top right, rgba(27, 107, 53, 0.15) 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(201, 168, 76, 0.05) 0%, transparent 40%);
+            border-right: 1px solid rgba(255,255,255,0.05);
             display: flex; flex-direction: column; z-index: 1000;
             box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
         .sidebar-brand {
-            padding: 18px 20px 14px;
-            background: rgba(0,0,0,0.2);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            padding: 24px 20px 18px;
+            background: rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
         }
         .sidebar-brand .logos-row {
-            display: flex; align-items: center; gap: 10px; justify-content: center;
+            display: flex; align-items: center; gap: 12px; justify-content: center;
         }
         .sidebar-brand .logos-row img {
-            height: 38px; width: 38px; object-fit: contain;
-            max-width: 38px; max-height: 38px; display: block; overflow: hidden;
+            height: 40px; width: 40px; object-fit: contain;
+            max-width: 40px; max-height: 40px; display: block; overflow: hidden;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
         }
-        /* Global SVG safety — prevent any uncontained SVG from going full-screen */
-        svg:not([class]):not([style]) { max-width: 100%; }
-        .pagination svg, nav svg { width: 14px !important; height: 14px !important; display: inline-block; vertical-align: middle; }
-        .sidebar-brand h6 { color: #fff; font-weight: 700; font-size: 13px; margin: 0; line-height: 1.4; text-align: center; }
-        .sidebar-brand small { color: rgba(255,255,255,0.5); font-size: 10px; text-align: center; }
+        .sidebar-brand h6 { color: #f8fafc; font-weight: 700; font-size: 15px; margin: 0; letter-spacing: 0.3px; text-align: center; }
+        .sidebar-brand small { color: #94a3b8; font-size: 11px; text-align: center; font-weight: 500; }
+        
+        .project-switcher-btn {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #f8fafc !important;
+            border-radius: 8px !important;
+            font-size: 11.5px !important;
+            padding: 8px 12px !important;
+            transition: all 0.2s ease !important;
+        }
+        .project-switcher-btn:hover {
+            background: rgba(255,255,255,0.12) !important;
+            border-color: rgba(255,255,255,0.2) !important;
+        }
 
-        .sidebar-nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
+        .sidebar-nav { flex: 1; padding: 20px 14px; overflow-y: auto; }
         .nav-section-title {
-            font-size: 9.5px; letter-spacing: 1.8px; text-transform: uppercase;
-            color: rgba(255,255,255,0.3); padding: 10px 10px 4px; font-weight: 600;
+            font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: #64748b; padding: 12px 10px 6px; font-weight: 700;
         }
         .sidebar-nav .nav-link {
-            color: rgba(255,255,255,0.7); border-radius: 9px; padding: 9px 12px;
+            color: #cbd5e1; border-radius: 10px; padding: 10px 14px;
             font-size: 13px; font-weight: 500; display: flex; align-items: center;
-            gap: 10px; transition: all 0.2s ease; margin-bottom: 2px;
+            gap: 12px; transition: all 0.2s ease; margin-bottom: 4px;
+            border: 1px solid transparent;
         }
         .sidebar-nav .nav-link:hover {
-            background: rgba(255,255,255,0.1); color: #fff; padding-left: 16px;
+            background: rgba(255,255,255,0.06); color: #fff;
+            transform: translateX(4px);
         }
         .sidebar-nav .nav-link.active {
-            background: rgba(255,255,255,0.15);
-            box-shadow: inset 3px 0 0 #C9A84C;
-            color: #fff; font-weight: 700;
+            background: linear-gradient(90deg, rgba(201, 168, 76, 0.15) 0%, rgba(201, 168, 76, 0.02) 100%);
+            border-left: 3px solid #C9A84C;
+            border-radius: 0 10px 10px 0;
+            color: #C9A84C; font-weight: 600;
         }
-        .sidebar-nav .nav-link i { font-size: 15px; width: 20px; text-align: center; }
+        .sidebar-nav .nav-link i { font-size: 16px; width: 22px; text-align: center; opacity: 0.8; }
+        .sidebar-nav .nav-link.active i { opacity: 1; text-shadow: 0 0 12px rgba(201, 168, 76, 0.4); }
 
-        .sidebar-footer { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); }
-        .sidebar-footer .user-info { color: rgba(255,255,255,0.6); font-size: 11px; }
-        .sidebar-footer .user-name { color: #fff; font-weight: 600; font-size: 13px; }
+        .sidebar-footer { padding: 16px 20px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-footer .user-info { color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sidebar-footer .user-name { color: #f8fafc; font-weight: 600; font-size: 14px; margin-top: 2px; }
+        .sidebar-footer .btn-logout { background: rgba(220,38,38,0.1) !important; color: #fca5a5 !important; border: 1px solid rgba(220,38,38,0.2) !important; }
+        .sidebar-footer .btn-logout:hover { background: rgba(220,38,38,0.2) !important; color: #fff !important; }
 
         /* ── MAIN ── */
-        .main-content { margin-left: var(--sidebar-w); min-height: 100vh; }
+        .main-content { 
+            margin-left: var(--sidebar-w); min-height: 100vh; 
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.sidebar-collapsed .main-content { margin-left: 0; }
+        
         .topbar {
             background: rgba(255,255,255,0.96);
             backdrop-filter: blur(10px);
@@ -82,7 +110,13 @@
             position: sticky; top: 0; z-index: 100;
             box-shadow: 0 1px 10px rgba(15,68,35,0.06);
         }
-        .topbar h5 { margin: 0; font-weight: 800; color: #1a2332; font-size: 15px; letter-spacing: -0.2px; }
+        .topbar h5 { margin: 0; font-weight: 800; color: #1a2332; font-size: 16px; letter-spacing: -0.2px; }
+        .sidebar-toggle-btn {
+            background: transparent; border: none; font-size: 22px; color: #475569;
+            cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+        }
+        .sidebar-toggle-btn:hover { background: rgba(0,0,0,0.06); color: #1a2332; }
         .page-body { padding: 22px 24px; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 
@@ -157,17 +191,17 @@
         .policy-box p { margin-bottom: 10px; }
 
         /* ── TABLE ── */
-        .data-table { border-radius: 12px; overflow: hidden; }
+        .data-table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
         .data-table thead th {
-            background: linear-gradient(90deg, #0f4423, #1B6B35);
-            color: #fff; font-size: 11px; font-weight: 700;
-            letter-spacing: 0.5px; padding: 11px 13px; border: none;
-            text-transform: uppercase;
+            background: #f8fafc;
+            color: #475569; font-size: 11px; font-weight: 700;
+            letter-spacing: 0.5px; padding: 12px 16px; 
+            border-bottom: 2px solid #e2e8f0; text-transform: uppercase;
         }
-        .data-table tbody td { padding: 10px 13px; font-size: 12px; vertical-align: middle; border-color: #f1f5f9; }
-        .data-table tbody tr { transition: background 0.12s; }
-        .data-table tbody tr:hover { background: #f0f9f4; box-shadow: inset 3px 0 0 #1B6B35; }
-        .data-table tbody tr:nth-child(even) { background: #fafbfc; }
+        .data-table tbody td { padding: 12px 16px; font-size: 12px; vertical-align: middle; border-bottom: 1px solid #e2e8f0; background: #fff; color: #334155; }
+        .data-table tbody tr { transition: background 0.15s ease; }
+        .data-table tbody tr:hover td { background: #f1f5f9; }
+        .data-table tbody tr:last-child td { border-bottom: none; }
         .badge-b { background: #dbeafe; color: #1d4ed8; }
         .badge-e { background: #dcfce7; color: #166534; }
         .fw-600 { font-weight: 600; }
@@ -195,27 +229,27 @@
         .btn-outline-secondary:hover { background: #f9fafb; border-color: #9ca3af; color: #1a2332; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
         .btn-outline-light:hover { background: rgba(255,255,255,0.1); }
 
-        /* ── PAGINATION — custom, no Bootstrap dependency ── */
-        .pha-pagination { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:14px; }
+        /* ── PAGINATION — modern & minimalist ── */
+        .pha-pagination { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:20px; }
         .pha-btn-page {
-            display:inline-flex; align-items:center; gap:5px; padding:7px 16px;
-            border-radius:8px; font-size:13px; font-weight:600; text-decoration:none !important;
-            background:linear-gradient(135deg,#1B6B35,#0f4423); color:#fff !important; border:none;
-            box-shadow:0 3px 10px rgba(15,68,35,0.28); transition:all 0.18s ease; cursor:pointer;
+            display:inline-flex; align-items:center; gap:6px; padding:0 18px; height: 38px;
+            border-radius:20px; font-size:13px; font-weight:600; text-decoration:none !important;
+            background:#fff; color:#475569 !important; border:1.5px solid #e2e8f0;
+            transition:all 0.2s ease; cursor:pointer;
         }
-        .pha-btn-page:hover:not(.disabled) { background:linear-gradient(135deg,#22853f,#1B6B35); box-shadow:0 5px 16px rgba(15,68,35,0.4); transform:translateY(-1px); color:#fff !important; }
-        .pha-btn-page.disabled { background:#e9ecef; color:#9ca3af !important; box-shadow:none; cursor:not-allowed; opacity:0.65; }
+        .pha-btn-page:hover:not(.disabled) { background:#f8fafc; color:#1a2332 !important; border-color:#cbd5e1; transform:translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+        .pha-btn-page.disabled { background:#f8fafc; color:#cbd5e1 !important; border-color:#f1f5f9; cursor:not-allowed; box-shadow:none; opacity: 0.7; }
         .pha-pg {
-            display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px;
-            padding:0 6px; border-radius:7px; font-size:13px; font-weight:500;
-            text-decoration:none !important; border:1.5px solid #e2e8f0; background:#fff;
-            color:#374151 !important; transition:all 0.15s ease; box-shadow:0 1px 3px rgba(0,0,0,0.05);
+            display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px;
+            border-radius:50%; font-size:13px; font-weight:600;
+            text-decoration:none !important; border:1.5px solid transparent; background:transparent;
+            color:#475569 !important; transition:all 0.2s ease;
         }
-        .pha-pg:hover:not(.pha-pg-active) { background:#f0f9f4; border-color:#1B6B35; color:#1B6B35 !important; transform:translateY(-1px); box-shadow:0 3px 8px rgba(27,107,53,0.15); text-decoration:none !important; }
-        .pha-pg-active { background:linear-gradient(135deg,#1B6B35,#0f4423) !important; border-color:#0f4423 !important; color:#fff !important; font-weight:700; box-shadow:0 3px 10px rgba(15,68,35,0.3); cursor:default; }
-        .pha-pg-dot { color:#94a3b8; font-weight:700; padding:0 4px; font-size:14px; }
-        .pha-pagination-meta { font-size:12px; color:#64748b; margin-top:6px; }
-        .pha-pagination-meta strong { color:#1B6B35; font-weight:700; }
+        .pha-pg:hover:not(.pha-pg-active) { background:#f1f5f9; color:#1a2332 !important; transform:translateY(-1px); }
+        .pha-pg-active { background: linear-gradient(135deg, #1B6B35, #0f4423) !important; color:#fff !important; box-shadow:0 4px 12px rgba(15,68,35,0.3); cursor:default; }
+        .pha-pg-dot { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; color:#94a3b8; font-weight:600; letter-spacing: 2px; }
+        .pha-pagination-meta { font-size:12.5px; color:#64748b; margin-top:12px; font-weight: 500; }
+        .pha-pagination-meta strong { color:#0f4423; font-weight:700; }
 
 
         /* ── FORM CONTROLS ── */
@@ -251,10 +285,10 @@
             <!-- Project Switcher -->
             <div class="dropdown w-100 px-3 mt-3">
                 @php $activeProject = \App\Models\Project::active(); @endphp
-                <button class="btn btn-sm w-100 text-start text-white dropdown-toggle" type="button" data-bs-toggle="dropdown" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); font-size: 11px;">
+                <button class="btn btn-sm w-100 text-start dropdown-toggle project-switcher-btn" type="button" data-bs-toggle="dropdown">
                     <i class="bi bi-building me-1"></i> {{ $activeProject ? $activeProject->name : 'I-16/3 Islamabad' }}
                 </button>
-                <ul class="dropdown-menu w-100 shadow" style="font-size: 12px;">
+                <ul class="dropdown-menu w-100 shadow" style="font-size: 12px; border:none; border-radius: 10px;">
                     <li class="dropdown-header text-muted" style="font-size: 10px;">SWITCH PROJECT</li>
                     @foreach(\App\Models\Project::all() as $proj)
                         <li>
@@ -275,8 +309,10 @@
             <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="bi bi-grid-1x2-fill"></i> Overview
             </a>
+            
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer']))
             <a href="{{ route('allottees.index') }}" class="nav-link {{ request()->routeIs('allottees.*') && !request()->routeIs('allottees.*defaulter*') && !request()->routeIs('blocks.visual') ? 'active' : '' }}">
-                <i class="bi bi-people-fill"></i> Allottee List
+                <i class="bi bi-people-fill"></i> Allottees Detail
             </a>
             <a href="{{ route('blocks.visual') }}" class="nav-link {{ request()->routeIs('blocks.visual') ? 'active' : '' }}">
                 <i class="bi bi-building-fill"></i> Block Visuals
@@ -284,7 +320,9 @@
             <a href="{{ route('allottees.index', ['defaulter' => 1]) }}" class="nav-link {{ request()->get('defaulter') == 1 ? 'active' : '' }}">
                 <i class="bi bi-exclamation-triangle-fill"></i> Defaulters
             </a>
+            @endif
 
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry']))
             <div class="nav-section-title mt-3">Billing & Payments</div>
             <a href="{{ route('monthly-bills.index') }}" class="nav-link {{ request()->routeIs('monthly-bills.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar-check-fill"></i> Monthly Bills
@@ -292,31 +330,39 @@
             <a href="{{ route('bills.search') }}" class="nav-link {{ request()->routeIs('bills.search') ? 'active' : '' }}">
                 <i class="bi bi-search"></i> Bill Search
             </a>
+            @endif
 
+            @if(in_array(auth()->user()->role, ['super_admin', 'whatsapp_sender']))
             <div class="nav-section-title mt-3">Communications</div>
             <a href="{{ route('notifications.index') }}" class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
                 <i class="bi bi-whatsapp"></i> Bulk SMS / WhatsApp
             </a>
+            @endif
 
             <div class="nav-section-title mt-3">Portal</div>
             <a href="{{ route('portal.login') }}" class="nav-link {{ request()->routeIs('portal.*') ? 'active' : '' }}" target="_blank">
                 <i class="bi bi-person-badge-fill"></i> Allottee Portal <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: 10px; width: auto;"></i>
             </a>
 
+            @if(auth()->user()->role === 'super_admin')
             <div class="nav-section-title mt-3">Management</div>
+            <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="bi bi-person-gear"></i> User Management
+            </a>
             <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
                 <i class="bi bi-sliders2"></i> Settings & Criteria
             </a>
             <a href="{{ route('projects.index') }}" class="nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
                 <i class="bi bi-building-gear"></i> Projects Setup
             </a>
+            @endif
         </nav>
         <div class="sidebar-footer">
             <div class="user-info">Logged in as</div>
             <div class="user-name">{{ Auth::user()->name }}</div>
             <form action="{{ route('logout') }}" method="POST" class="mt-2">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-outline-light w-100" style="font-size:11px;">
+                <button type="submit" class="btn btn-sm btn-logout w-100" style="font-size:11px; font-weight:600;">
                     <i class="bi bi-box-arrow-right"></i> Sign Out
                 </button>
             </form>
@@ -326,7 +372,12 @@
     <!-- MAIN -->
     <div class="main-content">
         <div class="topbar">
-            <h5>@yield('page-title', 'Dashboard')</h5>
+            <div class="d-flex align-items-center gap-3">
+                <button class="sidebar-toggle-btn" onclick="document.body.classList.toggle('sidebar-collapsed')" title="Toggle Sidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                <h5>@yield('page-title', 'Dashboard')</h5>
+            </div>
             <div class="d-flex align-items-center gap-3">
                 @php
                     $projects = \App\Models\Project::all();

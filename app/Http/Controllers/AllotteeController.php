@@ -78,27 +78,55 @@ class AllotteeController extends Controller
     {
         // Get all allottees with block, floor, flat info and payment status
         $allottees = Allottee::select('id','name','block_no','floor','flat_no','category','due_months',
-            'total_maintenance_charges','amount_paid','status')
+            'total_maintenance_charges','amount_paid','status', 'handed_over', 'temporary_occupancy')
             ->get()
             ->map(function($a) {
                 $a->payment_status_computed = $a->payment_status;
                 return $a;
             });
 
-        // Group by block → floor → flat
-        $blocks = [];
+        // Group by category → block → floor → flat
+        $categorizedBlocks = [];
         foreach ($allottees as $a) {
+            $cat = $a->category ?? 'Unknown';
             $block = $a->block_no ?? 'Unknown';
             $floor = $a->floor     ?? 'GF';
-            $blocks[$block][$floor][] = $a;
+            $categorizedBlocks[$cat][$block][$floor][] = $a;
         }
-        ksort($blocks);
+        
+        // Sort categories (e.g. B, E)
+        ksort($categorizedBlocks);
+        
+        // Sort blocks naturally within each category, and floors top-to-bottom
+        $floorOrder = [
+            'Seventh floor' => 1,
+            'Sixth Floor' => 2,
+            'Fifth Floor' => 3,
+            'Forth Floor' => 4, // Including typo 'Forth' as it exists in DB
+            'Fourth Floor' => 4,
+            'Third Floor' => 5,
+            'Second Floor' => 6,
+            'First Floor' => 7,
+            'Ground Floor' => 8,
+            '26' => 9
+        ];
+
+        foreach ($categorizedBlocks as &$blocks) {
+            ksort($blocks, SORT_NATURAL);
+            foreach ($blocks as &$floors) {
+                uksort($floors, function($a, $b) use ($floorOrder) {
+                    $orderA = $floorOrder[$a] ?? 99;
+                    $orderB = $floorOrder[$b] ?? 99;
+                    return $orderA <=> $orderB;
+                });
+            }
+        }
 
         $totalDefaulters = $allottees->filter(fn($a) => $a->due_months >= 3)->count();
         $totalPaid       = $allottees->filter(fn($a) => $a->payment_status_computed === 'paid')->count();
         $totalUnpaid     = $allottees->filter(fn($a) => $a->payment_status_computed === 'unpaid')->count();
 
-        return view('blocks.visual', compact('blocks', 'allottees', 'totalDefaulters', 'totalPaid', 'totalUnpaid'));
+        return view('blocks.visual', compact('categorizedBlocks', 'allottees', 'totalDefaulters', 'totalPaid', 'totalUnpaid'));
     }
 }
 

@@ -25,9 +25,17 @@ class BillController extends Controller
 
         $monthlyRate = $allottee->covered_area * $rate;
         $maintenance = $allottee->maintenance_charges;
-        $ww = $allottee->watch_ward_charges;
+        
+        // Watch & Ward Logic (Months from 01 July 2023 or Possession Date to Now)
+        $wwStartDate = Carbon::create(2023, 7, 1);
+        if ($allottee->possession_date && $allottee->possession_date->gt($wwStartDate)) {
+            $wwStartDate = $allottee->possession_date;
+        }
+        $wwMonths = max(0, $wwStartDate->diffInMonths(Carbon::now()));
+        $ww = $wwMonths * $wwAmount;
+        
         $fine = $allottee->fine;
-        $total = $allottee->total_maintenance_charges;
+        $total = $maintenance + $ww + $fine;
         $paid = (float) $allottee->amount_paid;
         $pending = max(0, $total - $paid);
         $dueMonths = $allottee->due_months ?? 0;
@@ -68,7 +76,7 @@ class BillController extends Controller
 
         return compact(
             'allottee',
-            'rate', 'wwAmount', 'wwCutoff', 'delayPct',
+            'rate', 'wwAmount', 'wwCutoff', 'delayPct', 'wwMonths',
             'monthlyRate', 'maintenance', 'ww', 'fine', 'total',
             'paid', 'pending', 'dueMonths', 'billMonth', 'lastPayment',
             'bankAccNo', 'bankName', 'bankBranch', 'qrData',

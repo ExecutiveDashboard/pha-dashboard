@@ -61,6 +61,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/projects',         [ProjectController::class, 'index'])->name('projects.index');
     Route::post('/projects/switch', [ProjectController::class, 'switchProject'])->name('projects.switch');
     Route::post('/projects/{project}/bank', [ProjectController::class, 'updateBank'])->name('projects.update-bank');
+    
+    // ── USER MANAGEMENT ────────────────────────────────────────────
+    Route::resource('/users', \App\Http\Controllers\UserController::class)->except(['create', 'show', 'edit']);
 });
 
 // ── ALLOTTEE PORTAL (no admin auth required) ────────────────────────

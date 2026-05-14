@@ -1,7 +1,8 @@
 @extends('layouts.app')
 @section('title', 'Overview Dashboard')
-@section('page-title', 'I-16/3 Apartments — Allottee Financial & Billing Dashboard')
-
+@section('page-title')
+    {{ \App\Models\Project::active()?->name ?? 'I-16/3' }} — Allottee Financial & Billing Dashboard
+@endsection
 @section('content')
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -642,60 +643,69 @@ document.addEventListener('DOMContentLoaded', function () {
         }).render();
     }
 
-    // 3. City Horizontal Bar
+    // 3. City Radar (Spider Web) Chart
     const cityData = @json($cityData);
     if (cityData && cityData.length > 0) {
+        // Limit to top 8 cities for better spider web readability
+        const topCities = cityData.slice(0, 8);
         new ApexCharts(document.querySelector('#cityBar'), {
-            chart: { type: 'bar', height: cityData.length * 32 + 60, toolbar: { show: false } },
-            plotOptions: { 
-                bar: { 
-                    horizontal: true, 
-                    borderRadius: 4, 
-                    barHeight: '55%',
-                    dataLabels: { position: 'bottom' }
-                } 
+            chart: { type: 'radar', height: 320, toolbar: { show: false } },
+            series: [{ name: 'Allottees', data: topCities.map(c => c.count) }],
+            labels: topCities.map(c => c.city || 'Unknown'),
+            stroke: { width: 2, colors: ['#d97706'] },
+            fill: { opacity: 0.3, colors: ['#fbbf24'] },
+            markers: { size: 5, colors: ['#fff'], strokeColors: '#d97706', strokeWidth: 2 },
+            yaxis: { show: false },
+            plotOptions: {
+                radar: {
+                    polygons: {
+                        strokeColors: '#e2e8f0',
+                        connectorColors: '#e2e8f0'
+                    }
+                }
             },
-            series: [{ name: 'Allottees', data: cityData.map(c => c.count) }],
-            xaxis: { categories: cityData.map(c => c.city || 'Unknown'), labels: { style: { fontSize: '11px', colors: '#64748b' } } },
-            yaxis: { labels: { style: { fontSize: '11px', fontWeight: 600, colors: '#1e293b' } } },
-            colors: ['#0ea5e9'],
-            fill: { type: 'gradient', gradient: { shade: 'light', type: 'vertical', shadeIntensity: 0.25, gradientToColors: ['#38bdf8'], inverseColors: true, opacityFrom: 1, opacityTo: 1, stops: [0, 100] } },
-            dataLabels: { enabled: true, textAnchor: 'start', style: { fontSize: '11px', fontWeight: 700, colors: ['#fff'] }, offsetX: 8, dropShadow: { enabled: true, top: 1, left: 1, blur: 1, color: '#000', opacity: 0.3 } },
-            grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+            dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#1e293b'] } },
             tooltip: { theme: 'light', y: { formatter: v => v.toLocaleString() + ' allottees' } }
         }).render();
     }
 
-    // 4. Block-wise Grouped Bar Chart
+    // 4. Block-wise Status Donut Chart (Category-wise)
     const blockDataAll = @json($blockData);
     let blockChart = null;
 
     function renderBlockChart(category) {
         const blockData = blockDataAll.filter(b => b.category === category);
+        let sTotal = 0, sHanded = 0, sTemp = 0, sTrans = 0;
         
-        // 1. Render Chart
+        blockData.forEach(b => {
+            sTotal += parseInt(b.total);
+            sHanded += parseInt(b.handed_over);
+            sTemp += parseInt(b.temp_occ);
+            sTrans += parseInt(b.transferred);
+        });
+
+        // 1. Render Circular Chart (Donut) instead of Bar
         const options = {
-            chart: { type: 'bar', height: Math.max(300, blockData.length * 36 + 60), toolbar: { show: false } },
+            chart: { type: 'donut', height: 300, toolbar: { show: false } },
+            series: [sHanded, sTemp, sTrans, (sTotal - sHanded - sTemp - sTrans)],
+            labels: ['Handed Over', 'Temp. Occupancy', 'Transferred', 'Unoccupied/Other'],
+            colors: [phaBlue, phaAmber, '#7c3aed', '#94a3b8'],
+            legend: { position: 'bottom', fontSize: '11px', fontWeight: 600, markers: { radius: 12 } },
+            dataLabels: { enabled: true, formatter: (val, opts) => opts.w.config.series[opts.seriesIndex] },
             plotOptions: { 
-                bar: { 
-                    horizontal: true, 
-                    borderRadius: 4, 
-                    barHeight: '65%',
-                    dataLabels: { position: 'top' } 
+                pie: { 
+                    donut: { 
+                        size: '65%',
+                        labels: {
+                            show: true,
+                            name: { show: true, fontSize: '10px' },
+                            value: { show: true, fontSize: '16px', fontWeight: 800 },
+                            total: { show: true, showAlways: true, label: 'Total Units', formatter: () => sTotal }
+                        }
+                    } 
                 } 
             },
-            series: [
-                { name: 'Total Allottees', data: blockData.map(b => b.total) },
-                { name: 'Handed Over',     data: blockData.map(b => b.handed_over) },
-                { name: 'Temp. Occupancy', data: blockData.map(b => b.temp_occ) },
-                { name: 'Transferred',     data: blockData.map(b => b.transferred) },
-            ],
-            xaxis: { categories: blockData.map(b => 'Block ' + b.block_no), labels: { style: { fontSize: '11px', colors: '#64748b' } } },
-            yaxis: { labels: { style: { fontSize: '12px', fontWeight: 600, colors: '#1e293b' } } },
-            colors: [phaGreen, phaBlue, phaAmber, '#7c3aed'],
-            legend: { position: 'top', fontSize: '12px', fontWeight: 600, markers: { radius: 12 } },
-            dataLabels: { enabled: false },
-            grid: { borderColor: '#f1f5f9', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+            stroke: { width: 2, colors: ['#fff'] },
             tooltip: { theme: 'light', y: { formatter: v => v.toLocaleString() + ' units' } }
         };
 
@@ -708,14 +718,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // 2. Render Table
         const tbody = document.getElementById('blockTableBody');
         let html = '';
-        let sTotal = 0, sHanded = 0, sTemp = 0, sTrans = 0;
         
         blockData.forEach(b => {
-            sTotal += parseInt(b.total);
-            sHanded += parseInt(b.handed_over);
-            sTemp += parseInt(b.temp_occ);
-            sTrans += parseInt(b.transferred);
-            
             html += `<tr>
                 <td><strong>Cat-${b.category} Blk ${b.block_no}</strong></td>
                 <td class="text-end">${parseInt(b.total).toLocaleString()}</td>
@@ -786,17 +790,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }).render();
     }
 
-    // 7. BPS Demographic Distribution
+    // 7. BPS Demographic Pie Chart
     const bpsData = @json($bpsDistribution);
     if (bpsData && bpsData.length > 0) {
         new ApexCharts(document.querySelector('#bpsChart'), {
-            chart: { type: 'bar', height: 280, toolbar: { show: false } },
-            series: [{ name: 'Allottees', data: bpsData.map(d => d.count) }],
-            xaxis: { categories: bpsData.map(d => 'BPS ' + d.bps) },
-            colors: ['#8b5cf6'],
-            plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
-            dataLabels: { enabled: true, style: { fontSize: '10px' } },
-            grid: { borderColor: '#f1f5f9' },
+            chart: { type: 'pie', height: 280, toolbar: { show: false } },
+            series: bpsData.map(d => d.count),
+            labels: bpsData.map(d => 'BPS ' + d.bps),
+            colors: ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#6366f1'],
+            legend: { position: 'right', fontSize: '10px' },
+            dataLabels: { enabled: true, formatter: (val, opts) => opts.w.config.series[opts.seriesIndex] },
+            stroke: { width: 1, colors: ['#fff'] },
             tooltip: { y: { formatter: v => v + ' allottees' } }
         }).render();
     }

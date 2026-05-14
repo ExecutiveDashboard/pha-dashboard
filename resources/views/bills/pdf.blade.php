@@ -221,9 +221,9 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:10px; color:#1a233
       @endif
       @if($ww > 0)
       <tr>
-        <td><span class="fw">Watch &amp; Ward Charges</span><br><span style="font-size:8px;color:#6b7280;">Possession date policy applies</span></td>
+        <td><span class="fw">Watch &amp; Ward Charges</span><br><span style="font-size:8px;color:#6b7280;">From max(Possession Date, 01-Jul-2023)</span></td>
         <td class="tc">{{ number_format($wwAmount) }}</td>
-        <td class="tc">One-time</td>
+        <td class="tc">{{ $wwMonths }} month(s)</td>
         <td class="tr fw">{{ number_format($ww,2) }}</td>
       </tr>
       @endif

@@ -1,7 +1,8 @@
 @extends('layouts.app')
 @section('title', 'Allottee List')
-@section('page-title', 'All Allottees — I-16/3')
-
+@section('page-title')
+    All Allottees — {{ \App\Models\Project::active()?->name ?? 'I-16/3' }}
+@endsection
 @section('content')
 
 {{-- Filters --}}

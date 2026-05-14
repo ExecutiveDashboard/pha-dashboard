@@ -5,116 +5,173 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - PHAF I-16/3 Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-        * { font-family: 'Inter', sans-serif; }
+        * { box-sizing: border-box; }
         body {
-            min-height: 100vh;
-            background: url('{{ asset('images/bg/login-bg.png') }}') center/cover no-repeat fixed;
+            margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+            background-color: #ffffff; min-height: 100vh;
             display: flex; align-items: center; justify-content: center;
-            padding: 20px;
-            position: relative;
+            overflow-x: hidden; position: relative;
         }
-        body::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, rgba(15,68,35,0.85) 0%, rgba(27,107,53,0.7) 100%);
-            z-index: 1;
+        /* The Purple Background Ring */
+        .bg-ring {
+            position: fixed;
+            top: 2%;
+            right: 15%;
+            width: 320px;
+            height: 320px;
+            border: 45px solid #c4b5fd;
+            border-radius: 50%;
+            z-index: 0;
+            opacity: 0.8;
         }
-        .login-wrapper { width: 100%; max-width: 440px; position: relative; z-index: 2; }
-        .login-header { text-align: center; margin-bottom: 32px; color: #fff; }
-        .login-header .pha-badge {
-            background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.25);
-            color: #fff; font-weight: 700; font-size: 13px; letter-spacing: 2px;
-            padding: 6px 18px; border-radius: 50px; display: inline-block; margin-bottom: 16px;
-        }
-        .login-header h2 { font-weight: 800; font-size: 28px; margin-bottom: 6px; }
-        .login-header p { color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 500; }
+        
         .login-card {
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-            border-radius: 24px; padding: 40px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.6);
+            position: relative; z-index: 1;
+            width: 100%; max-width: 400px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 40px 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
         }
-        .login-card h5 { font-weight: 700; color: #1a2332; font-size: 18px; margin-bottom: 6px; }
-        .login-card .subtitle { color: #64748b; font-size: 13.5px; margin-bottom: 28px; }
-        .form-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
-        .form-control {
-            border: 1.5px solid #e2e8f0; border-radius: 10px;
-            padding: 11px 14px; font-size: 14px; transition: all 0.2s;
+
+        /* Faint Watermark inside card */
+        .card-watermark {
+            position: absolute;
+            top: 55%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 480px; height: 480px;
+            background: url('{{ asset('images/logos/pha-logo.svg') }}') center/contain no-repeat;
+            opacity: 0.15; z-index: -1;
         }
-        .form-control:focus {
-            border-color: #1B6B35; box-shadow: 0 0 0 3px rgba(27,107,53,0.12);
+
+        .header-logo {
+            width: 90px; height: 90px;
+            margin: 0 auto 16px; display: block;
+            object-fit: contain;
         }
-        .btn-login {
-            background: linear-gradient(135deg, #1B6B35, #2d8a4e);
-            border: none; color: #fff; font-weight: 700; font-size: 15px;
-            padding: 13px; border-radius: 10px; width: 100%;
-            transition: all 0.2s; letter-spacing: 0.3px;
+        
+        .card-title {
+            text-align: center; font-size: 16px; font-weight: 800; color: #000; margin-bottom: 4px;
         }
-        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(27,107,53,0.35); color: #fff; }
-        .footer-note { text-align: center; margin-top: 24px; color: rgba(255,255,255,0.6); font-size: 12px; }
-        .input-group-text { background: #f8fafc; border: 1.5px solid #e2e8f0; border-right: none; border-radius: 10px 0 0 10px; }
-        .input-group .form-control { border-left: none; border-radius: 0 10px 10px 0; }
-        .error-msg { background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-bottom: 20px; }
+        .card-subtitle {
+            text-align: center; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 24px;
+        }
+
+        /* Minimal Input Fields */
+        .custom-input {
+            width: 100%; border: none; border-bottom: 1.5px solid #cbd5e1;
+            padding: 10px 4px; margin-bottom: 20px; font-size: 14px; color: #1e293b;
+            background: transparent; outline: none; transition: border-color 0.2s;
+        }
+        .custom-input:focus { border-bottom-color: #10b981; }
+
+        /* Buttons */
+        .btn-pill {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; border-radius: 50px; border: none;
+            padding: 10px; font-weight: 700; font-size: 15px;
+            transition: all 0.2s; cursor: pointer; text-decoration: none;
+        }
+        .btn-signin {
+            background: #10b981; color: #fff; margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-signin:hover { background: #059669; color: #fff; transform: translateY(-1px); }
+        
+        .no-account-text {
+            text-align: center; color: #64748b; font-size: 12.5px;
+            margin-bottom: 6px; font-weight: 500; display: flex; flex-direction: column;
+        }
+        .urdu-text { font-family: 'Noto Nastaliq Urdu', serif; font-size: 15px; font-weight: 700; line-height: 1; }
+        
+        .btn-signup {
+            background: #b4d36e; color: #fff; margin-bottom: 40px;
+            box-shadow: 0 4px 12px rgba(180, 211, 110, 0.3);
+        }
+        .btn-signup:hover { background: #a3cc4e; color: #fff; transform: translateY(-1px); }
+
+        /* Bottom Icons */
+        .bottom-icons {
+            display: flex; justify-content: center; gap: 30px;
+        }
+        .icon-item {
+            display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none;
+        }
+        .icon-circle {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: #10b981; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+            transition: transform 0.2s;
+        }
+        .icon-item:hover .icon-circle { transform: translateY(-3px); background: #059669; }
+        .icon-label {
+            color: #475569; font-size: 10.5px; font-weight: 600;
+        }
+
+        .alert-error {
+            background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: center;
+        }
     </style>
 </head>
 <body>
-    <div class="login-wrapper">
-        <div class="login-header">
-            <div style="display:flex;justify-content:center;align-items:center;gap:20px;margin-bottom:20px;">
-                <div style="background:#fff;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;padding:5px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-                    <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Logo" style="width:50px;height:50px;object-fit:contain;">
-                </div>
-                <div style="background:#fff;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;padding:5px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-                    <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt Logo" style="width:50px;height:50px;object-fit:contain;">
-                </div>
-            </div>
-            <h2 style="font-weight:900;letter-spacing:1px;font-size:32px;">PHA Foundation</h2>
-            <div class="pha-badge" style="margin-top:10px;">MAINTENANCE DASHBOARD</div>
-            <p>Ministry of Housing & Works — I-16/3 Islamabad</p>
+    <!-- Background Design -->
+    <div class="bg-ring"></div>
+
+    <div class="login-card">
+        <div class="card-watermark"></div>
+
+        <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Logo" class="header-logo">
+        <h3 class="card-title">PHAF Maintenance Services</h3>
+        <p class="card-subtitle">Ministry of Housing and Works</p>
+
+        @if($errors->any())
+            <div class="alert-error">{{ $errors->first() }}</div>
+        @endif
+
+        <form action="{{ route('login') }}" method="POST">
+            @csrf
+            <!-- Inputs -->
+            <input type="email" name="email" class="custom-input" placeholder="Email Address" required autofocus>
+            <input type="password" name="password" class="custom-input" placeholder="Password" required>
+
+            <!-- Sign In -->
+            <button type="submit" class="btn-pill btn-signin">
+                Sign In / <span class="urdu-text">سائن ان کریں</span>
+            </button>
+        </form>
+
+        <!-- Sign Up Link (Admin doesn't have signup, so we link to portal or keep as visual placeholder) -->
+        <div class="no-account-text">
+            <span>Don't have an account?</span>
+            <span class="urdu-text" style="color: #64748b; margin-top: 6px; font-size: 14px;">اکاؤنٹ نہیں ہے؟</span>
         </div>
+        
+        <a href="{{ route('portal.login') }}" class="btn-pill btn-signup">
+            Sign Up / <span class="urdu-text">سائن اپ کریں</span>
+        </a>
 
-        <div class="login-card">
-            <h5>Welcome Back</h5>
-            <p class="subtitle">Sign in to access the maintenance dashboard</p>
-
-            @if($errors->any())
-                <div class="error-msg"><i class="bi bi-exclamation-circle me-2"></i>{{ $errors->first() }}</div>
-            @endif
-
-            <form action="/login" method="POST">
-                @csrf
-                <div class="mb-3">
-                    <label class="form-label">Email Address</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope" style="color:#64748b;"></i></span>
-                        <input type="email" name="email" class="form-control" placeholder="admin@pha.gov.pk"
-                               value="{{ old('email') }}" required autofocus>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock" style="color:#64748b;"></i></span>
-                        <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
-                    </div>
-                </div>
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                    <label class="form-check-label" for="remember" style="font-size:13px;color:#64748b;">Remember me</label>
-                </div>
-                <button type="submit" class="btn-login btn">
-                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
-                </button>
-            </form>
+        <!-- Icons -->
+        <div class="bottom-icons">
+            <a href="#" class="icon-item">
+                <div class="icon-circle"><i class="bi bi-calendar2-check"></i></div>
+                <div class="icon-label">News/Events</div>
+            </a>
+            <a href="#" class="icon-item">
+                <div class="icon-circle"><i class="bi bi-building"></i></div>
+                <div class="icon-label">Projects</div>
+            </a>
+            <a href="#" class="icon-item">
+                <div class="icon-circle"><i class="bi bi-telephone"></i></div>
+                <div class="icon-label">Contact</div>
+            </a>
         </div>
-
-        <p class="footer-note">© {{ date('Y') }} PHA Foundation. All rights reserved.</p>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

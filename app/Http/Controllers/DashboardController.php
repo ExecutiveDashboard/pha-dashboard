@@ -48,15 +48,35 @@ class DashboardController extends Controller
 
 
         // ── W&W ELIGIBILITY BREAKDOWN ──────────────────────────────────
-        $wwBeforeCount  = Allottee::whereNotNull('possession_date')
-                                   ->where('possession_date', '<', $wwCutoff)->count();
-        $wwAfterCount   = Allottee::where('possession_date', '>=', $wwCutoff)->count();
-        $wwNullCount    = Allottee::whereNull('possession_date')->count();
+        $allAllottees = Allottee::select('possession_date')->get();
+        $totalWWRecoverable = 0;
+        $wwBeforeCount = 0;
+        $wwAfterCount = 0;
+        $wwNullCount = 0;
+        
+        $wwStartDate = Carbon::create(2023, 7, 1);
+        $now = Carbon::now();
 
-        $wwBeforeAmount     = 0;
-        $wwAfterAmount      = $wwAfterCount * $wwAmount;
-        $wwNullAmount       = $wwNullCount  * $wwAmount;
-        $totalWWRecoverable = $wwAfterAmount + $wwNullAmount;
+        foreach ($allAllottees as $a) {
+            $startDate = clone $wwStartDate;
+            if ($a->possession_date) {
+                if ($a->possession_date->lt($wwStartDate)) {
+                    $wwBeforeCount++;
+                } else {
+                    $wwAfterCount++;
+                    $startDate = $a->possession_date;
+                }
+            } else {
+                $wwNullCount++;
+            }
+            
+            $months = max(0, $startDate->diffInMonths($now));
+            $totalWWRecoverable += ($months * $wwAmount);
+        }
+        
+        $wwBeforeAmount = 0;
+        $wwAfterAmount = 0; // We will omit exact splits for dashboard simplification
+        $wwNullAmount = 0;
 
         // ── BILLING SUMMARY ────────────────────────────────────────────
         $subtotal          = $totalMonthlyBilling + $totalWWRecoverable;
