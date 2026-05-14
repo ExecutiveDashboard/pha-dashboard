@@ -26,9 +26,9 @@ Thumbs.db
 # Junk files - exclude from repo
 *.exe
 *.pdf
-*.png
-*.jpg
-*.jpeg
+# *.png
+# *.jpg
+# *.jpeg
 *.zip
 out.txt
 check_*.php
