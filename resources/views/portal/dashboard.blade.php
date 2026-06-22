@@ -77,7 +77,12 @@
                     </span>
                 </div>
             </div>
-        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="d-flex gap-2 mb-4 border-bottom pb-2">
+        <a href="{{ route('portal.dashboard') }}" class="btn btn-sm btn-success fw-bold" style="background:#1B6B35; border:none; border-radius:20px; padding: 6px 16px;"><i class="bi bi-receipt me-1"></i>Billing & Payments</a>
+        <a href="{{ route('portal.complaints.index') }}" class="btn btn-sm btn-outline-secondary fw-bold" style="border-radius:20px; padding: 6px 16px;"><i class="bi bi-chat-left-text me-1"></i>Help & Complaints</a>
     </div>
 
     <div class="row g-3">

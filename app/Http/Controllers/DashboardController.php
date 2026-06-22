@@ -155,27 +155,78 @@ class DashboardController extends Controller
         $sampleAllottees = Allottee::orderByDesc('total_maintenance_charges')->limit(15)->get();
 
         // ── BPS + DUE MONTHS + POSSESSION (for charts) ───────────────
-        $allBps = Allottee::select('bps')->get();
-        $govtCount = 0;
-        $gpCount = 0;
-        foreach ($allBps as $b) {
-            $val = strtoupper(trim($b->bps ?? ''));
-            if ($val === '') continue;
-            if ($val === 'GP' || str_contains($val, 'GENERAL')) {
-                $gpCount++;
-            } else {
-                $num = (int) preg_replace('/[^0-9]/', '', $val);
-                if ($num >= 1 && $num <= 22) {
-                    $govtCount++;
+        $bpsCounts = [];
+        for ($i = 1; $i <= 22; $i++) {
+            $bpsCounts["BPS $i"] = 0;
+        }
+        $bpsCounts["General Public (GP)"] = 0;
+        $bpsCounts["Federal Govt (FG)"] = 0;
+        $bpsCounts["Other Quotas"] = 0;
+
+        $allAllottees = Allottee::select('bps', 'gp')->get();
+        foreach ($allAllottees as $a) {
+            $bpsRaw = trim($a->bps ?? '');
+            $gpRaw = strtoupper(trim($a->gp ?? ''));
+
+            if ($bpsRaw === '') {
+                if ($gpRaw === 'YES' || $gpRaw === 'GP') {
+                    $bpsCounts["General Public (GP)"]++;
                 } else {
-                    $gpCount++;
+                    $bpsCounts["General Public (GP)"]++;
                 }
+                continue;
+            }
+
+            if (strtoupper($bpsRaw) === 'GP' || str_contains(strtoupper($bpsRaw), 'GENERAL')) {
+                $bpsCounts["General Public (GP)"]++;
+                continue;
+            }
+
+            if (in_array(strtoupper($bpsRaw), ['F', 'FG', 'FGE'])) {
+                $bpsCounts["Federal Govt (FG)"]++;
+                continue;
+            }
+
+            // Extract numeric grade
+            if (preg_match('/\b(0?[1-9]|1[0-9]|2[0-2])\b/', $bpsRaw, $matches)) {
+                $num = (int)$matches[1];
+                $bpsCounts["BPS $num"]++;
+            } else {
+                $bpsCounts["Other Quotas"]++;
             }
         }
-        $bpsDistribution = [
-            (object)['label' => 'Govt Employees (BPS)', 'count' => $govtCount],
-            (object)['label' => 'General Public (GP)', 'count' => $gpCount]
-        ];
+
+        // Sort keys: BPS 1..22, then GP, FG, and Other Quotas
+        uksort($bpsCounts, function($a, $b) {
+            $aIsBps = preg_match('/^BPS (\d+)$/', $a, $aMatches);
+            $bIsBps = preg_match('/^BPS (\d+)$/', $b, $bMatches);
+
+            if ($aIsBps && $bIsBps) {
+                return (int)$aMatches[1] <=> (int)$bMatches[1];
+            }
+            if ($aIsBps) return -1;
+            if ($bIsBps) return 1;
+
+            $order = [
+                'General Public (GP)' => 1,
+                'Federal Govt (FG)' => 2,
+                'Other Quotas' => 3
+            ];
+            $aOrd = $order[$a] ?? 99;
+            $bOrd = $order[$b] ?? 99;
+            return $aOrd <=> $bOrd;
+        });
+
+        $bpsDistribution = [];
+        foreach ($bpsCounts as $label => $count) {
+            if ($count > 0) {
+                $bpsDistribution[] = (object)[
+                    'label' => $label,
+                    'count' => $count
+                ];
+            }
+        }
+
         $monthsDistribution = Allottee::select('due_months', DB::raw('count(*) as count'))
                                 ->whereNotNull('due_months')->groupBy('due_months')
                                 ->orderBy('due_months')->get();

@@ -339,6 +339,33 @@
             </a>
             @endif
 
+            <!-- ── COMPLAINT SYSTEM ── -->
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_staff']))
+            <div class="nav-section-title mt-3">Complaint System</div>
+            
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer']))
+            <a href="{{ route('admin.complaints.dashboard') }}" class="nav-link {{ request()->routeIs('admin.complaints.dashboard') ? 'active' : '' }}">
+                <i class="bi bi-chat-left-text-fill"></i> Complaints Dashboard
+            </a>
+            @endif
+            
+            <a href="{{ route('admin.complaints.index') }}" class="nav-link {{ request()->routeIs('admin.complaints.index') || request()->routeIs('admin.complaints.show') ? 'active' : '' }}">
+                <i class="bi bi-list-task"></i> Manage Complaints
+            </a>
+            
+            @if(auth()->user()->role === 'super_admin')
+            <a href="{{ route('admin.complaints.categories.index') }}" class="nav-link {{ request()->routeIs('admin.complaints.categories.*') ? 'active' : '' }}">
+                <i class="bi bi-tags-fill"></i> Categories
+            </a>
+            <a href="{{ route('admin.complaints.staff.index') }}" class="nav-link {{ request()->routeIs('admin.complaints.staff.*') ? 'active' : '' }}">
+                <i class="bi bi-people-fill"></i> Maintenance Staff
+            </a>
+            <a href="{{ route('admin.complaints.reports') }}" class="nav-link {{ request()->routeIs('admin.complaints.reports') ? 'active' : '' }}">
+                <i class="bi bi-bar-chart-line-fill"></i> CMS Reports
+            </a>
+            @endif
+            @endif
+
             <div class="nav-section-title mt-3">Portal</div>
             <a href="{{ route('portal.login') }}" class="nav-link {{ request()->routeIs('portal.*') ? 'active' : '' }}" target="_blank">
                 <i class="bi bi-person-badge-fill"></i> Allottee Portal <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: 10px; width: auto;"></i>

@@ -387,9 +387,10 @@
 <div class="row g-3 mb-3">
     <div class="col-lg-5">
         <div class="chart-card h-100">
-            <h6 class="section-title"><i class="bi bi-radar me-2" style="color:#8b5cf6;"></i>BPS Demographic Distribution <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Shows the breakdown of allottees by their Basic Pay Scale (BPS) grade."></i></h6>
-            <p class="chart-sub">Spread of allottees across Basic Pay Scales</p>
-            <div id="bpsChart"></div>
+            <h6 class="section-title"><i class="bi bi-people-fill me-2" style="color:#8b5cf6;"></i>BPS Demographic Distribution <i class="bi bi-info-circle ms-auto text-muted" style="font-size: 14px; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Shows the detailed breakdown of allottees by BPS Grade, General Public and other quotas."></i></h6>
+            <p class="chart-sub">Spread of allottees across BPS grades and quotas</p>
+            <div id="bpsChart" style="min-height: 280px;"></div>
+            <div id="bpsSummary" class="mt-2 border-top pt-2"></div>
         </div>
     </div>
     <div class="col-lg-7">
@@ -810,16 +811,107 @@ document.addEventListener('DOMContentLoaded', function () {
     if (bpsData && bpsData.length > 0) {
         let totalBps = bpsData.reduce((acc, curr) => acc + curr.count, 0);
         if (totalBps > 0) {
+            // Determine dynamic height based on the number of bars
+            let chartHeight = Math.max(280, bpsData.length * 32);
+            
+            // Map colors based on category/BPS grade
+            const colors = bpsData.map(d => {
+                let lbl = d.label.toUpperCase();
+                if (lbl.includes('BPS')) {
+                    let num = parseInt(lbl.replace(/[^0-9]/g, ''), 10);
+                    if (num >= 1 && num <= 16) {
+                        return '#3b82f6'; // Blue for BPS 1-16 (Lower-grade Staff)
+                    } else if (num >= 17 && num <= 22) {
+                        return '#eab308'; // Amber/Gold for BPS 17-22 (Officers)
+                    }
+                }
+                if (lbl.includes('GP') || lbl.includes('PUBLIC')) {
+                    return '#0d9488'; // Teal for General Public
+                }
+                if (lbl.includes('FG') || lbl.includes('FEDERAL')) {
+                    return '#6366f1'; // Indigo for Federal Govt Quota
+                }
+                return '#8b5cf6'; // Purple for other quotas
+            });
+
             new ApexCharts(document.querySelector('#bpsChart'), {
-                chart: { type: 'bar', height: 280, toolbar: { show: false } },
+                chart: { type: 'bar', height: chartHeight, toolbar: { show: false } },
                 series: [{ name: 'Allottees', data: bpsData.map(d => d.count) }],
                 xaxis: { categories: bpsData.map(d => d.label) },
                 plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true } },
-                colors: ['#0ea5e9', '#8b5cf6'],
+                colors: colors,
                 legend: { show: false },
-                dataLabels: { enabled: true, style: { fontSize: '12px' } },
+                dataLabels: { enabled: true, style: { fontSize: '11px', colors: ['#fff'] } },
+                grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
                 tooltip: { y: { formatter: v => v + ' allottees' } }
             }).render();
+
+            // Calculate dynamic summary groupings for legend
+            let staffCount = 0;
+            let officerCount = 0;
+            let gpCount = 0;
+            let otherCount = 0;
+
+            bpsData.forEach(d => {
+                let lbl = d.label.toUpperCase();
+                let count = d.count;
+
+                if (lbl.includes('BPS')) {
+                    let num = parseInt(lbl.replace(/[^0-9]/g, ''), 10);
+                    if (num >= 1 && num <= 16) {
+                        staffCount += count;
+                    } else if (num >= 17 && num <= 22) {
+                        officerCount += count;
+                    }
+                } else if (lbl.includes('GP') || lbl.includes('PUBLIC')) {
+                    gpCount += count;
+                } else {
+                    otherCount += count;
+                }
+            });
+
+            let staffPct = totalBps > 0 ? ((staffCount / totalBps) * 100).toFixed(1) : 0;
+            let officerPct = totalBps > 0 ? ((officerCount / totalBps) * 100).toFixed(1) : 0;
+            let gpPct = totalBps > 0 ? ((gpCount / totalBps) * 100).toFixed(1) : 0;
+            let otherPct = totalBps > 0 ? ((otherCount / totalBps) * 100).toFixed(1) : 0;
+
+            let summaryHtml = `
+                <div class="row g-2 text-center" style="font-size: 11px; margin-top: 10px;">
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded h-100" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2);">
+                            <div class="fw-bold text-primary">Junior/Support</div>
+                            <div style="font-size: 9px; color: #64748b;">(BPS 1-16)</div>
+                            <div class="fs-6 fw-bold mt-1 text-primary">${staffCount.toLocaleString()}</div>
+                            <span class="badge bg-primary text-white mt-1" style="font-size: 9px;">${staffPct}%</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded h-100" style="background: rgba(234, 179, 8, 0.08); border: 1px solid rgba(234, 179, 8, 0.2);">
+                            <div class="fw-bold" style="color: #b45309;">Officers</div>
+                            <div style="font-size: 9px; color: #64748b;">(BPS 17-22)</div>
+                            <div class="fs-6 fw-bold mt-1" style="color: #b45309;">${officerCount.toLocaleString()}</div>
+                            <span class="badge mt-1 text-white" style="background: #b45309; font-size: 9px;">${officerPct}%</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded h-100" style="background: rgba(13, 148, 136, 0.08); border: 1px solid rgba(13, 148, 136, 0.2);">
+                            <div class="fw-bold" style="color: #0d9488;">General Public</div>
+                            <div style="font-size: 9px; color: #64748b;">(GP Quota)</div>
+                            <div class="fs-6 fw-bold mt-1" style="color: #0d9488;">${gpCount.toLocaleString()}</div>
+                            <span class="badge mt-1 text-white" style="background: #0d9488; font-size: 9px;">${gpPct}%</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded h-100" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2);">
+                            <div class="fw-bold" style="color: #7c3aed;">Other Quotas</div>
+                            <div style="font-size: 9px; color: #64748b;">(FG, Media, etc)</div>
+                            <div class="fs-6 fw-bold mt-1" style="color: #7c3aed;">${otherCount.toLocaleString()}</div>
+                            <span class="badge mt-1 text-white" style="background: #7c3aed; font-size: 9px;">${otherPct}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.querySelector('#bpsSummary').innerHTML = summaryHtml;
         } else {
             document.querySelector('#bpsChart').innerHTML = '<div class="text-center text-muted" style="padding-top:100px;">No BPS Data Available for this Project</div>';
         }

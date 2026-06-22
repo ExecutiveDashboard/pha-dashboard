@@ -64,6 +64,28 @@ Route::middleware('auth')->group(function () {
     
     // ── USER MANAGEMENT ────────────────────────────────────────────
     Route::resource('/users', \App\Http\Controllers\UserController::class)->except(['create', 'show', 'edit']);
+
+    // ── COMPLAINT MANAGEMENT ───────────────────────────────────────
+    Route::prefix('admin/complaints')->name('admin.complaints.')->group(function () {
+        // Specific named routes MUST come before the /{complaint} wildcard
+        Route::get('/dashboard',              [\App\Http\Controllers\Admin\ComplaintReportController::class, 'dashboard'])->name('dashboard');
+        Route::get('/reports/export',         [\App\Http\Controllers\Admin\ComplaintReportController::class, 'export'])->name('export');
+        Route::get('/reports',                [\App\Http\Controllers\Admin\ComplaintReportController::class, 'reports'])->name('reports');
+
+        Route::resource('categories',         \App\Http\Controllers\Admin\ComplaintCategoryController::class)->except(['create', 'show', 'edit']);
+        Route::resource('staff',              \App\Http\Controllers\Admin\MaintenanceStaffController::class)->except(['create', 'show', 'edit']);
+
+        Route::get('/',                       [\App\Http\Controllers\Admin\ComplaintController::class, 'index'])->name('index');
+
+        // Wildcard routes last so they don't swallow named segments above
+        Route::post('/{complaint}/assign',    [\App\Http\Controllers\Admin\ComplaintController::class, 'assign'])->name('assign');
+        Route::post('/{complaint}/priority',  [\App\Http\Controllers\Admin\ComplaintController::class, 'updatePriority'])->name('priority');
+        Route::post('/{complaint}/status',    [\App\Http\Controllers\Admin\ComplaintController::class, 'updateStatus'])->name('status');
+        Route::post('/{complaint}/resolve',   [\App\Http\Controllers\Admin\ComplaintController::class, 'resolve'])->name('resolve');
+        Route::post('/{complaint}/close',     [\App\Http\Controllers\Admin\ComplaintController::class, 'close'])->name('close');
+        Route::post('/{complaint}/remark',    [\App\Http\Controllers\Admin\ComplaintController::class, 'addRemark'])->name('remark');
+        Route::get('/{complaint}',            [\App\Http\Controllers\Admin\ComplaintController::class, 'show'])->name('show');
+    });
 });
 
 // ── ALLOTTEE PORTAL (no admin auth required) ────────────────────────
@@ -73,5 +95,15 @@ Route::prefix('portal')->name('portal.')->group(function () {
     Route::get('/dashboard', [AllotteePortalController::class, 'dashboard'])->name('dashboard');
     Route::post('/logout',   [AllotteePortalController::class, 'logout'])->name('logout');
     Route::get('/bill/{month}', [AllotteePortalController::class, 'viewMonthlyBill'])->name('bill.monthly');
+});
+
+// ── PORTAL COMPLAINTS ───────────────────────────────────────────────
+Route::prefix('portal/complaints')->name('portal.complaints.')->group(function () {
+    Route::get('/',                     [\App\Http\Controllers\Portal\PortalComplaintController::class, 'index'])->name('index');
+    Route::post('/',                    [\App\Http\Controllers\Portal\PortalComplaintController::class, 'store'])->name('store');
+    Route::get('/{complaint}',          [\App\Http\Controllers\Portal\PortalComplaintController::class, 'show'])->name('show');
+    Route::post('/{complaint}/feedback', [\App\Http\Controllers\Portal\PortalComplaintController::class, 'feedback'])->name('feedback');
+    Route::post('/{complaint}/reopen',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'reopen'])->name('reopen');
+    Route::post('/{complaint}/remark',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'addRemark'])->name('remark');
 });
 
