@@ -135,62 +135,64 @@ class BillController extends Controller
         $tlv .= $formatTlv('60', substr('Islamabad', 0, 15));      // Merchant City
         $sub62 = $formatTlv('01', substr($allottee->file_no ?? 'INV', 0, 25));
 
-        // Project I-16/3 identification extension inside standard EMVCo Tag 62 Sub-tag 08 (Purpose of Transaction)
-        // Placing this inside Tag 62 prevents strict Raast banking app parsers from rejecting unreserved top-level Tag 80.
+        // Project identification extension inside standard EMVCo Tag 62 Sub-tag 08 (Purpose of Transaction)
+        $cleanAlphaNum = function ($str) {
+            return preg_replace('/[^A-Z0-9]/', '', strtoupper((string)$str));
+        };
+
+        $normalizeFloor = function ($floor) use ($cleanAlphaNum) {
+            $raw = trim((string)$floor);
+            $upper = strtoupper(preg_replace('/\s+/', ' ', $raw));
+            $map = [
+                'GROUND FLOOR'       => 'GF',
+                'GROUND'             => 'GF',
+                'FIRST FLOOR'        => 'FF',
+                '1ST FLOOR'          => 'FF',
+                'SECOND FLOOR'       => '2F',
+                '2ND FLOOR'          => '2F',
+                'THIRD FLOOR'        => '3F',
+                '3RD FLOOR'          => '3F',
+                'FOURTH FLOOR'       => '4F',
+                '4TH FLOOR'          => '4F',
+                'FIFTH FLOOR'        => '5F',
+                '5TH FLOOR'          => '5F',
+                'LOWER GROUND'       => 'LG',
+                'LOWER GROUND FLOOR' => 'LGF',
+                'BASEMENT'           => 'BS',
+            ];
+            if (isset($map[$upper])) {
+                return $map[$upper];
+            }
+            $cleaned = $cleanAlphaNum($upper);
+            if (is_numeric($cleaned)) {
+                return "{$cleaned}F";
+            }
+            return $cleaned;
+        };
+
         $projName = strtoupper($allottee->project?->name ?? '');
         $projCode = strtoupper($allottee->project?->code ?? '');
         if ($allottee->project_id == 1 || str_contains($projName, 'I-16/3') || str_contains($projCode, 'I163')) {
-            $cleanAlphaNum = function ($str) {
-                return preg_replace('/[^A-Z0-9]/', '', strtoupper((string)$str));
-            };
-
-            $normalizeFloor = function ($floor) use ($cleanAlphaNum) {
-                $raw = trim((string)$floor);
-                $upper = strtoupper(preg_replace('/\s+/', ' ', $raw));
-                $map = [
-                    'GROUND FLOOR'       => 'GF',
-                    'GROUND'             => 'GF',
-                    'FIRST FLOOR'        => 'FF',
-                    '1ST FLOOR'          => 'FF',
-                    'SECOND FLOOR'       => 'SF',
-                    '2ND FLOOR'          => 'SF',
-                    'THIRD FLOOR'        => 'TF',
-                    '3RD FLOOR'          => 'TF',
-                    'FOURTH FLOOR'       => '4F',
-                    '4TH FLOOR'          => '4F',
-                    'FIFTH FLOOR'        => '5F',
-                    '5TH FLOOR'          => '5F',
-                    'LOWER GROUND'       => 'LG',
-                    'LOWER GROUND FLOOR' => 'LGF',
-                    'BASEMENT'           => 'BS',
-                ];
-                if (isset($map[$upper])) {
-                    return $map[$upper];
-                }
-                $cleaned = $cleanAlphaNum($upper);
-                if (is_numeric($cleaned)) {
-                    return "F{$cleaned}";
-                }
-                return $cleaned;
-            };
-
             $p = 'I163';
-            $b = $cleanAlphaNum($allottee->block_no ?? '');
-            $f = $normalizeFloor($allottee->floor ?? '');
-            $a = $cleanAlphaNum($allottee->flat_no ?? '');
-            $n = $cleanAlphaNum($allottee->name ?? '');
+        } else {
+            $p = $cleanAlphaNum(str_replace('PHAF-', '', $allottee->project?->code ?? ($allottee->project?->name ?? 'PROJ')));
+        }
 
-            $parts = [];
-            $parts[] = $p;
-            if ($b !== '') $parts[] = "B{$b}";
-            if ($f !== '') $parts[] = $f;
-            if ($a !== '') $parts[] = "A{$a}";
-            if ($n !== '') $parts[] = $n;
+        $b = $cleanAlphaNum($allottee->block_no ?? '');
+        $f = $normalizeFloor($allottee->floor ?? '');
+        $a = $cleanAlphaNum($allottee->flat_no ?? '');
+        $n = $cleanAlphaNum($allottee->name ?? '');
 
-            $compactPayload = implode('-', $parts);
-            if (!empty($compactPayload) && (strlen($sub62) + 4 + strlen($compactPayload)) <= 99) {
-                $sub62 .= $formatTlv('08', $compactPayload);
-            }
+        $parts = [];
+        if ($p !== '') $parts[] = $p;
+        if ($b !== '') $parts[] = "B{$b}";
+        if ($f !== '') $parts[] = $f;
+        if ($a !== '') $parts[] = "A{$a}";
+        if ($n !== '') $parts[] = $n;
+
+        $compactPayload = implode('-', $parts);
+        if (!empty($compactPayload) && (strlen($sub62) + 4 + strlen($compactPayload)) <= 99) {
+            $sub62 .= $formatTlv('08', $compactPayload);
         }
 
         $tlv .= $formatTlv('62', $sub62); // Additional Data: Bill Reference & Purpose
