@@ -134,9 +134,9 @@ class BillController extends Controller
         $tlv .= $formatTlv('59', substr('PHA Foundation', 0, 25)); // Merchant Name
         $tlv .= $formatTlv('60', substr('Islamabad', 0, 15));      // Merchant City
         $sub62 = $formatTlv('01', substr($allottee->file_no ?? 'INV', 0, 25));
-        $tlv .= $formatTlv('62', $sub62); // Additional Data: Bill Reference
 
-        // Project I-16/3 identification extension (Tag 80 Unreserved Template in safe compact hyphen format)
+        // Project I-16/3 identification extension inside standard EMVCo Tag 62 Sub-tag 08 (Purpose of Transaction)
+        // Placing this inside Tag 62 prevents strict Raast banking app parsers from rejecting unreserved top-level Tag 80.
         $projName = strtoupper($allottee->project?->name ?? '');
         $projCode = strtoupper($allottee->project?->code ?? '');
         if ($allottee->project_id == 1 || str_contains($projName, 'I-16/3') || str_contains($projCode, 'I163')) {
@@ -158,10 +158,12 @@ class BillController extends Controller
             if ($n !== '') $parts[] = $n;
 
             $compactPayload = implode('-', $parts);
-            if (!empty($compactPayload) && strlen($compactPayload) <= 99) {
-                $tlv .= $formatTlv('80', $compactPayload);
+            if (!empty($compactPayload) && (strlen($sub62) + 4 + strlen($compactPayload)) <= 99) {
+                $sub62 .= $formatTlv('08', $compactPayload);
             }
         }
+
+        $tlv .= $formatTlv('62', $sub62); // Additional Data: Bill Reference & Purpose
 
         $payloadForCrc = $tlv . '6304';
         $crc = 0xFFFF;
