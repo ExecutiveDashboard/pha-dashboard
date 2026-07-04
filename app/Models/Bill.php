@@ -73,4 +73,50 @@ class Bill extends Model
             default    => 'danger',
         };
     }
+
+    const ROUNDING_TOLERANCE = 1.00;
+
+    /** Unified display status */
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->status === 'paid') return 'Paid';
+        if ($this->status === 'settled') return 'Settled';
+        $isOverdue = Carbon::createFromFormat('Y-m', $this->bill_month)->endOfMonth()->isPast();
+        if ($this->status === 'partial') return $isOverdue ? 'Overdue (Partial)' : 'Partial';
+        return $isOverdue ? 'Overdue' : 'Unpaid';
+    }
+
+    /** Centralized payment recording and status transition state machine */
+    public function recordPaymentAmount(float $amount, string $mode, string $date, ?string $ref): float
+    {
+        $total = (float) $this->total_amount;
+        $currentPaid = (float) $this->paid_amount;
+        $due = max(0, $total - $currentPaid);
+
+        if ($due <= 0) {
+            return $amount; // Already paid, return unused amount
+        }
+
+        if ($amount >= ($due - self::ROUNDING_TOLERANCE)) {
+            $this->update([
+                'paid_amount'  => $total,
+                'status'       => 'paid',
+                'is_locked'    => true,
+                'locked_at'    => now(),
+                'payment_mode' => $mode,
+                'payment_date' => $date,
+                'payment_ref'  => $ref,
+            ]);
+            return max(0, $amount - $due);
+        } else {
+            $this->update([
+                'paid_amount'  => $currentPaid + $amount,
+                'status'       => 'partial',
+                'payment_mode' => $mode,
+                'payment_date' => $date,
+                'payment_ref'  => $ref,
+            ]);
+            return 0; // All payment used
+        }
+    }
 }

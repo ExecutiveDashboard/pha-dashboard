@@ -32,6 +32,11 @@
                         <option value="Habib Bank Limited" {{ $setting->value == 'Habib Bank Limited' ? 'selected' : '' }}>Habib Bank Limited</option>
                         <option value="Bank Alfalah" {{ $setting->value == 'Bank Alfalah' ? 'selected' : '' }}>Bank Alfalah</option>
                     </select>
+                @elseif($setting->type === 'boolean')
+                    <select name="{{ $setting->key }}" class="form-select">
+                        <option value="1" {{ $setting->value == '1' ? 'selected' : '' }}>Yes</option>
+                        <option value="0" {{ $setting->value == '0' || empty($setting->value) ? 'selected' : '' }}>No</option>
+                    </select>
                 @else
                     <input type="{{ $setting->type === 'number' ? 'number' : 'text' }}"
                            step="any"

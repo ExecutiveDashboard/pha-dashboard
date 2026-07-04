@@ -111,8 +111,8 @@ class DashboardController extends Controller
         // ── DEFAULTERS ─────────────────────────────────────────────────
         $threshold       = (int) Setting::getValue('defaulter_months_threshold', 3);
         $topCount        = (int) Setting::getValue('defaulter_top_count', 10);
-        $totalDefaulters = Allottee::where('due_months', '>=', $threshold)->count();
-        $defaulters      = Allottee::where('due_months', '>=', $threshold)
+        $totalDefaulters = Allottee::where('overdue_months', '>=', $threshold)->count();
+        $defaulters      = Allottee::where('overdue_months', '>=', $threshold)
                                     ->orderByDesc('total_maintenance_charges')
                                     ->limit($topCount)->get();
 
@@ -227,9 +227,9 @@ class DashboardController extends Controller
             }
         }
 
-        $monthsDistribution = Allottee::select('due_months', DB::raw('count(*) as count'))
-                                ->whereNotNull('due_months')->groupBy('due_months')
-                                ->orderBy('due_months')->get();
+        $monthsDistribution = Allottee::select('overdue_months', DB::raw('count(*) as count'))
+                                ->whereNotNull('overdue_months')->groupBy('overdue_months')
+                                ->orderBy('overdue_months')->get();
         $possessionTimeline = Allottee::select(
                                 DB::raw("strftime('%Y', possession_date) as year"),
                                 DB::raw("strftime('%Y-%m', possession_date) as month"),
@@ -265,9 +265,12 @@ class DashboardController extends Controller
         $totalTransferred      = Allottee::whereNotNull('transfer')
             ->where('transfer', '!=', '')->where('transfer', '!=', '0')->count();
 
+        $parkingRate = (float) Setting::getValue('parking_charges_rate', 500);
+        $waterRate = (float) Setting::getValue('water_charges_rate', 1000);
+
         return view('dashboard.index', compact(
             'totalAllottees', 'categoryStats',
-            'maintenanceRate', 'wwAmount', 'wwCutoff', 'delayPct',
+            'maintenanceRate', 'wwAmount', 'wwCutoff', 'delayPct', 'parkingRate', 'waterRate',
             'totalMonthlyBilling', 'forecastYearly', 'actualYearly',
             'wwBeforeCount', 'wwAfterCount', 'wwNullCount',
             'wwBeforeAmount', 'wwAfterAmount', 'wwNullAmount', 'totalWWRecoverable',

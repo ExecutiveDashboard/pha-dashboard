@@ -27,7 +27,7 @@ class AllotteeController extends Controller
         if ($request->filled('bps'))      $query->where('bps', $request->bps);
         if ($request->filled('defaulter') && $request->defaulter === '1') {
             $threshold = (int) Setting::getValue('defaulter_months_threshold', 3);
-            $query->where('due_months', '>=', $threshold);
+            $query->where('overdue_months', '>=', $threshold);
         }
 
         $allottees = $query->orderByDesc('total_maintenance_charges')->paginate(25)->withQueryString();
@@ -77,7 +77,7 @@ class AllotteeController extends Controller
     public function blockVisual()
     {
         // Get all allottees with block, floor, flat info and payment status
-        $allottees = Allottee::select('id','name','block_no','floor','flat_no','category','due_months',
+        $allottees = Allottee::select('id','name','block_no','floor','flat_no','category','due_months','overdue_months',
             'total_maintenance_charges','amount_paid','status', 'handed_over', 'temporary_occupancy')
             ->get()
             ->map(function($a) {
@@ -122,7 +122,7 @@ class AllotteeController extends Controller
             }
         }
 
-        $totalDefaulters = $allottees->filter(fn($a) => $a->due_months >= 3)->count();
+        $totalDefaulters = $allottees->filter(fn($a) => $a->overdue_months >= 3)->count();
         $totalPaid       = $allottees->filter(fn($a) => $a->payment_status_computed === 'paid')->count();
         $totalUnpaid     = $allottees->filter(fn($a) => $a->payment_status_computed === 'unpaid')->count();
 

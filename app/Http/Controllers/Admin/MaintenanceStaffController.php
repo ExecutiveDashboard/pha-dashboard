@@ -12,6 +12,10 @@ class MaintenanceStaffController extends Controller
 {
     public function index()
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $staff = MaintenanceStaff::with('user')->orderBy('name')->get();
         // Load users with 'maintenance_staff' role who are not already linked to another staff,
         // plus any user currently linked to the staff being edited.
@@ -31,6 +35,10 @@ class MaintenanceStaffController extends Controller
 
     public function store(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $request->validate([
             'name'         => 'required|string|max:255',
             'designation'  => 'required|string|max:255',
@@ -69,6 +77,10 @@ class MaintenanceStaffController extends Controller
 
     public function update(Request $request, MaintenanceStaff $staff)
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $request->validate([
             'name'         => 'required|string|max:255',
             'designation'  => 'required|string|max:255',
@@ -107,6 +119,10 @@ class MaintenanceStaffController extends Controller
 
     public function destroy(MaintenanceStaff $staff)
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $staff->delete();
         return redirect()->route('admin.complaints.staff.index')->with('success', 'Staff member removed successfully.');
     }

@@ -97,8 +97,8 @@
                     <td style="font-size:12px;">Blk {{ $a->block_no }}<br><span style="color:#94a3b8;">Flat {{ $a->flat_no }}</span></td>
                     <td style="font-size:12px;">{{ $a->bps ? 'BPS-'.$a->bps : '—' }}</td>
                     <td>
-                        @if($a->due_months > 0)
-                            <span class="badge {{ $a->due_months >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">{{ $a->due_months }}</span>
+                        @if($a->overdue_months > 0)
+                            <span class="badge {{ $a->overdue_months >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">{{ $a->overdue_months }}</span>
                         @else
                             <span class="badge bg-success">0</span>
                         @endif

@@ -16,11 +16,30 @@ class PaymentController extends Controller
             'payment_ref'  => 'nullable|string|max:100',
         ]);
 
-        $allottee->amount_paid += $request->amount_paid;
-        $allottee->payment_mode = $request->payment_mode;
-        $allottee->payment_date = $request->payment_date;
-        $allottee->payment_ref = $request->payment_ref;
-        $allottee->save();
+        \Illuminate\Support\Facades\DB::transaction(function() use ($request, $allottee) {
+            // Lock the allottee row to prevent concurrent modifications
+            $lockedAllottee = Allottee::lockForUpdate()->findOrFail($allottee->id);
+
+            $lockedAllottee->amount_paid += $request->amount_paid;
+            $lockedAllottee->payment_mode = $request->payment_mode;
+            $lockedAllottee->payment_date = $request->payment_date;
+            $lockedAllottee->payment_ref = $request->payment_ref;
+            $lockedAllottee->save(); // Re-calculates overdue months automatically
+
+            // Lock and retrieve the entire range of unpaid and partial bills ordered chronologically
+            $remaining = (float) $request->amount_paid;
+            $unpaid = \App\Models\Bill::withoutGlobalScopes()
+                ->where('allottee_id', $lockedAllottee->id)
+                ->whereNotIn('status', ['paid', 'settled'])
+                ->orderBy('bill_month', 'asc')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($unpaid as $b) {
+                if ($remaining <= 0) break;
+                $remaining = $b->recordPaymentAmount($remaining, $request->payment_mode, $request->payment_date, $request->payment_ref);
+            }
+        });
 
         return back()->with('success', 'Payment recorded successfully for ' . $allottee->name);
     }

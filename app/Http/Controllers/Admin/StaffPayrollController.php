@@ -17,6 +17,10 @@ class StaffPayrollController extends Controller
      */
     public function index(Request $request)
     {
+        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $selectedMonth = $request->get('month', Carbon::now()->format('Y-m'));
 
         // Sanitise input
@@ -58,7 +62,7 @@ class StaffPayrollController extends Controller
      */
     public function generate(Request $request)
     {
-        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry'])) {
+        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -162,6 +166,10 @@ class StaffPayrollController extends Controller
      */
     public function show(StaffPayroll $payroll)
     {
+        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $payroll->load(['staff', 'generatedBy']);
         return view('admin.staff.payroll.show', compact('payroll'));
     }

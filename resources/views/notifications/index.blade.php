@@ -23,8 +23,8 @@
                     </div>
                     <select name="allottee_ids[]" id="recipientSelect" class="form-select" multiple style="height: 150px; font-size: 12px;" required>
                         @foreach($allottees as $a)
-                            <option value="{{ $a->id }}" data-due="{{ $a->due_months }}">
-                                {{ $a->name }} ({{ $a->file_no }}) — Blk {{ $a->block_no }}/Flt {{ $a->flat_no }} — Due: {{ $a->due_months }} mo
+                            <option value="{{ $a->id }}" data-due="{{ $a->overdue_months }}">
+                                {{ $a->name }} ({{ $a->file_no }}) — Blk {{ $a->block_no }}/Flt {{ $a->flat_no }} — Due: {{ $a->overdue_months }} mo
                             </option>
                         @endforeach
                     </select>

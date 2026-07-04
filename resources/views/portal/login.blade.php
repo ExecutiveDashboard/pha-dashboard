@@ -68,7 +68,7 @@
         /* Bottom nav */
         .bottom-nav {
             display: flex; gap: 32px; justify-content: center;
-            margin-top: 40px;
+            margin-top: 24px;
         }
         .bottom-nav-item { text-align: center; color: rgba(255,255,255,0.8); text-decoration: none; }
         .bottom-nav-item .icon-circle {
@@ -80,6 +80,7 @@
         }
         .bottom-nav-item:hover .icon-circle { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
         .bottom-nav-item span { font-size: 12px; font-weight: 500; }
+        .footer-note { text-align: center; margin-top: 20px; color: rgba(255,255,255,0.65); font-size: 11.5px; letter-spacing: 0.3px; }
     </style>
 </head>
 <body>
@@ -152,6 +153,7 @@
                 <span>Contact Us</span>
             </a>
         </div>
+        <p class="footer-note">© {{ date('Y') }} PHA Foundation. Developed by IT Wing. All rights reserved.</p>
     </div>
 </body>
 </html>

@@ -15,6 +15,10 @@ class ComplaintReportController extends Controller
 {
     public function dashboard()
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         // ── KPIs ───────────────────────────────────────────────────────
         $counts = [
             'total' => Complaint::count(),
@@ -102,6 +106,10 @@ class ComplaintReportController extends Controller
 
     public function reports(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $query = Complaint::with(['allottee', 'category', 'assignedStaff', 'project']);
 
         // Filtering
@@ -134,6 +142,10 @@ class ComplaintReportController extends Controller
 
     public function export(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $query = Complaint::with(['allottee', 'category', 'assignedStaff', 'project']);
 
         // Apply filters

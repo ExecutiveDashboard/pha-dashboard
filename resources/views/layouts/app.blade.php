@@ -34,21 +34,72 @@
         }
         body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
         .sidebar-brand {
-            padding: 24px 20px 18px;
-            background: rgba(0,0,0,0.15);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            padding: 28px 20px 22px;
+            background: linear-gradient(135deg, rgba(27, 107, 53, 0.28) 0%, rgba(15, 68, 35, 0.45) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 14px;
+            transition: all 0.3s ease;
         }
-        .sidebar-brand .logos-row {
-            display: flex; align-items: center; gap: 12px; justify-content: center;
+        .sidebar-logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            padding: 8px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+            gap: 12px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .sidebar-brand .logos-row img {
-            height: 40px; width: 40px; object-fit: contain;
-            max-width: 40px; max-height: 40px; display: block; overflow: hidden;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+        .sidebar-logo-container:hover {
+            transform: scale(1.02);
+            background: #ffffff;
+            box-shadow: 0 6px 20px rgba(27, 107, 53, 0.35), 0 0 12px rgba(255, 255, 255, 0.25);
+            border-color: #ffffff;
         }
-        .sidebar-brand h6 { color: #f8fafc; font-weight: 700; font-size: 15px; margin: 0; letter-spacing: 0.3px; text-align: center; }
-        .sidebar-brand small { color: #94a3b8; font-size: 11px; text-align: center; font-weight: 500; }
+        .sidebar-logo-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+        }
+        .sidebar-logo-wrapper img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            display: block;
+        }
+        .sidebar-logo-divider {
+            width: 1px;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-brand h6 { 
+            color: #ffffff; 
+            font-weight: 700; 
+            font-size: 15.5px; 
+            margin: 0; 
+            letter-spacing: 1.2px; 
+            text-transform: uppercase;
+            text-align: center; 
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .sidebar-brand small { 
+            color: rgba(255, 255, 255, 0.65); 
+            font-size: 10.5px; 
+            text-align: center; 
+            font-weight: 500; 
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
         
         .project-switcher-btn {
             background: rgba(255,255,255,0.06) !important;
@@ -271,16 +322,19 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <div class="logos-row">
-                <div style="background:#fff;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                    <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Logo" style="width:34px;height:34px;object-fit:contain;">
+            <div class="sidebar-logo-container">
+                <div class="sidebar-logo-wrapper">
+                    <img src="{{ asset('images/logos/pha-logo.svg') }}" alt="PHA Logo">
                 </div>
-                <div style="background:#fff;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                    <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt of Pakistan" style="width:34px;height:34px;object-fit:contain;">
+                <div class="sidebar-logo-divider"></div>
+                <div class="sidebar-logo-wrapper">
+                    <img src="{{ asset('images/logos/govt-pk.svg') }}" alt="Govt of Pakistan">
                 </div>
             </div>
-            <h6 style="font-size:16px; margin-top:4px;">PHA Foundation</h6>
-            <small>Ministry of Housing & Works</small>
+            <div class="text-center mt-1">
+                <h6>PHA Foundation</h6>
+                <small class="d-block">Ministry of Housing & Works</small>
+            </div>
 
             <!-- Project Switcher -->
             <div class="dropdown w-100 px-3 mt-3">
@@ -324,8 +378,11 @@
 
             @if(in_array(auth()->user()->role, ['super_admin', 'data_entry']))
             <div class="nav-section-title mt-3">Billing & Payments</div>
-            <a href="{{ route('monthly-bills.index') }}" class="nav-link {{ request()->routeIs('monthly-bills.*') ? 'active' : '' }}">
-                <i class="bi bi-calendar-check-fill"></i> Monthly Bills
+            <a href="{{ route('monthly-bills.index') }}" class="nav-link {{ request()->routeIs('monthly-bills.*') && !request()->routeIs('monthly-bills-e.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-check-fill"></i> Monthly Bills (Cat B)
+            </a>
+            <a href="{{ route('monthly-bills-e.index') }}" class="nav-link {{ request()->routeIs('monthly-bills-e.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-check-fill"></i> Monthly Bills (Cat E)
             </a>
             <a href="{{ route('bills.search') }}" class="nav-link {{ request()->routeIs('bills.search') ? 'active' : '' }}">
                 <i class="bi bi-search"></i> Bill Search
@@ -340,10 +397,10 @@
             @endif
 
             <!-- ── COMPLAINT SYSTEM ── -->
-            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_staff']))
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_staff', 'maintenance_supervisor']))
             <div class="nav-section-title mt-3">Complaint System</div>
             
-            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer']))
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_supervisor']))
             <a href="{{ route('admin.complaints.dashboard') }}" class="nav-link {{ request()->routeIs('admin.complaints.dashboard') ? 'active' : '' }}">
                 <i class="bi bi-chat-left-text-fill"></i> Complaints Dashboard
             </a>
@@ -353,7 +410,7 @@
                 <i class="bi bi-list-task"></i> Manage Complaints
             </a>
             
-            @if(auth()->user()->role === 'super_admin')
+            @if(in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor']))
             <a href="{{ route('admin.complaints.categories.index') }}" class="nav-link {{ request()->routeIs('admin.complaints.categories.*') ? 'active' : '' }}">
                 <i class="bi bi-tags-fill"></i> Categories
             </a>
@@ -367,7 +424,7 @@
             @endif
 
             {{-- ── Staff HR Management ──────────────────────────────────────── --}}
-            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer']))
+            @if(in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_supervisor']))
             <div class="nav-section-title mt-3">Staff HR Management</div>
             <a href="{{ route('admin.staff.attendance.index') }}" class="nav-link {{ request()->routeIs('admin.staff.attendance.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar-check-fill"></i> Attendance
@@ -408,6 +465,10 @@
                     <i class="bi bi-box-arrow-right"></i> Sign Out
                 </button>
             </form>
+            <div class="text-center mt-3 pt-2" style="border-top: 1px solid rgba(255,255,255,0.06); font-size: 9.5px; color: rgba(255, 255, 255, 0.4); line-height: 1.4; letter-spacing: 0.3px;">
+                &copy; {{ date('Y') }} PHA Foundation<br>
+                Developed by IT Wing
+            </div>
         </div>
     </aside>
 

@@ -27,6 +27,7 @@
                         <option value="viewer">Viewer (Dashboard Only)</option>
                         <option value="data_entry">Data Entry (Allottees & Bills)</option>
                         <option value="whatsapp_sender">WhatsApp Sender (Communications)</option>
+                        <option value="maintenance_supervisor">Maintenance Supervisor (CMS & Staff HR)</option>
                         <option value="super_admin">Super Admin (Full Access)</option>
                     </select>
                 </div>
@@ -60,6 +61,8 @@
                                     <span class="badge bg-primary">Data Entry</span>
                                 @elseif($user->role === 'whatsapp_sender')
                                     <span class="badge bg-success">WhatsApp Sender</span>
+                                @elseif($user->role === 'maintenance_supervisor')
+                                    <span class="badge bg-warning text-dark">Maintenance Supervisor</span>
                                 @else
                                     <span class="badge bg-secondary">Viewer</span>
                                 @endif
@@ -106,6 +109,7 @@
                                                     <option value="viewer" {{ $user->role === 'viewer' ? 'selected' : '' }}>Viewer</option>
                                                     <option value="data_entry" {{ $user->role === 'data_entry' ? 'selected' : '' }}>Data Entry</option>
                                                     <option value="whatsapp_sender" {{ $user->role === 'whatsapp_sender' ? 'selected' : '' }}>WhatsApp Sender</option>
+                                                    <option value="maintenance_supervisor" {{ $user->role === 'maintenance_supervisor' ? 'selected' : '' }}>Maintenance Supervisor</option>
                                                     <option value="super_admin" {{ $user->role === 'super_admin' ? 'selected' : '' }}>Super Admin</option>
                                                 </select>
                                             </div>

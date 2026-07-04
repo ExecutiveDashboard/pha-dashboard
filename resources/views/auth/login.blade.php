@@ -108,7 +108,7 @@
             </form>
         </div>
 
-        <p class="footer-note">© {{ date('Y') }} PHA Foundation. All rights reserved.</p>
+        <p class="footer-note">© {{ date('Y') }} PHA Foundation. Developed by IT Wing. All rights reserved.</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

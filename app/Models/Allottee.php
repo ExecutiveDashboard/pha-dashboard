@@ -15,6 +15,10 @@ class Allottee extends Model
                 $builder->where('allottees.project_id', $activeProject->id);
             }
         });
+
+        static::saving(function ($allottee) {
+            $allottee->overdue_months = $allottee->calculateOverdueMonths();
+        });
     }
 
     protected $fillable = [
@@ -24,7 +28,7 @@ class Allottee extends Model
         'gp','block_no','floor','flat_no','bps','cnic','balloting_fcfs','pal',
         'transfer','verification','scanning','name','office_name','cadre_group',
         'date_of_joining','post_held','dos','dob','office_address','mailing_address',
-        'office_tel','home_tel','cell','category','covered_area','due_months',
+        'office_tel','home_tel','cell','category','covered_area','due_months','overdue_months',
         'maintenance_charges','watch_ward_charges','fine','total_maintenance_charges','city',
         'amount_paid','payment_mode','payment_date','payment_ref',
         'ww_charged','ww_charged_date',
@@ -38,6 +42,7 @@ class Allottee extends Model
         'dob' => 'date',
         'payment_date' => 'date',
         'due_months' => 'integer',
+        'overdue_months' => 'integer',
         'maintenance_charges' => 'decimal:2',
         'watch_ward_charges' => 'decimal:2',
         'fine' => 'decimal:2',
@@ -56,7 +61,50 @@ class Allottee extends Model
     public function isDefaulter(): bool
     {
         $threshold = (int) Setting::getValue('defaulter_months_threshold', 3);
-        return $this->due_months >= $threshold;
+        return $this->overdue_months >= $threshold;
+    }
+
+    public function calculateOverdueMonths(): int
+    {
+        $amountPaid = (float) $this->amount_paid;
+        $bills = \App\Models\Bill::withoutGlobalScopes()
+            ->where('allottee_id', $this->id)
+            ->whereNotIn('status', ['settled'])
+            ->orderBy('bill_month', 'asc')
+            ->get();
+
+        $overdueMonthsCount = 0;
+        $previousMaint = 0;
+
+        $rate = 3.07;
+        $activeProject = \App\Models\Project::withoutGlobalScopes()->find($this->project_id);
+        if ($activeProject) {
+            $rate = $activeProject->maintenance_rate;
+        }
+        $parkingRate = $this->has_parking ? ($this->parking_charges > 0 ? $this->parking_charges : (float) \App\Models\Setting::getValue('parking_charges_rate', 500)) : 0;
+        $waterRate = $this->has_water ? ($this->water_charges > 0 ? $this->water_charges : (float) \App\Models\Setting::getValue('water_charges_rate', 1000)) : 0;
+        $monthlyBase = ($rate * $this->covered_area) + $parkingRate + $waterRate;
+
+        foreach ($bills as $bill) {
+            $incrementalMaint = (float)$bill->maintenance_amount - $previousMaint;
+            $billMonths = $monthlyBase > 0 ? max(1, (int) round($incrementalMaint / $monthlyBase)) : 1;
+            
+            $cumulativeCharges = (float)$bill->maintenance_amount + (float)$bill->ww_amount + (float)$bill->fine_amount;
+            
+            $isPaid = ($bill->status === 'paid' || $bill->status === 'settled' || $amountPaid >= ($cumulativeCharges - \App\Models\Bill::ROUNDING_TOLERANCE));
+            
+            if (!$isPaid) {
+                $overdueMonthsCount += $billMonths;
+            }
+            
+            $previousMaint = (float)$bill->maintenance_amount;
+        }
+
+        if ($this->due_months > 0 && $overdueMonthsCount > $this->due_months) {
+            $overdueMonthsCount = $this->due_months;
+        }
+
+        return $overdueMonthsCount;
     }
 
     public function getAmountPendingAttribute(): float
@@ -66,9 +114,13 @@ class Allottee extends Model
 
     public function getPaymentStatusAttribute(): string
     {
-        if ($this->amount_paid <= 0) return 'unpaid';
-        if ($this->amount_paid >= $this->total_maintenance_charges) return 'paid';
-        return 'partial';
+        if ((float)$this->amount_paid >= ((float)$this->total_maintenance_charges - \App\Models\Bill::ROUNDING_TOLERANCE)) {
+            return 'paid';
+        }
+        if ((float)$this->amount_paid > 0) {
+            return 'partial';
+        }
+        return 'unpaid';
     }
 
     public function getDisplayNameAttribute(): string

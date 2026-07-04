@@ -106,7 +106,7 @@
                         <div class="kpi-value" style="color:#1B6B35;">Rs.
                             {{ number_format($allottee->total_maintenance_charges) }}</div>
                         <div class="kpi-label">Total Payable</div>
-                        <div class="kpi-sub">{{ $allottee->due_months ?? 0 }} months overdue</div>
+                        <div class="kpi-sub">{{ $allottee->overdue_months ?? 0 }} months overdue</div>
                     </div>
                 </div>
             </div>

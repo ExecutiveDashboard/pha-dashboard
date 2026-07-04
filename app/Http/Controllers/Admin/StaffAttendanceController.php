@@ -31,6 +31,10 @@ class StaffAttendanceController extends Controller
      */
     public function index(Request $request)
     {
+        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         // Resolve selected date
         try {
             $selectedDate = $request->filled('date')
@@ -79,6 +83,10 @@ class StaffAttendanceController extends Controller
      */
     public function save(Request $request)
     {
+        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         $request->validate(['date' => 'required|date']);
 
         $date      = Carbon::parse($request->input('date'));

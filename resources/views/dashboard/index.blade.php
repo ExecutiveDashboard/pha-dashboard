@@ -516,9 +516,9 @@
                     <td>{{ $d->file_no }}</td>
                     <td><span class="badge {{ $d->category==='B'?'badge-b':'badge-e' }}">{{ $d->category }}</span></td>
                     <td>Blk {{ $d->block_no }} / Flat {{ $d->flat_no }}</td>
-                    <td><span class="badge bg-danger">{{ $d->due_months }} mo</span>
+                    <td><span class="badge bg-danger">{{ $d->overdue_months }} mo</span>
                         <div class="progress mt-1" style="height: 4px;">
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ min(100, ($d->due_months / 12) * 100) }}%;"></div>
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ min(100, ($d->overdue_months / 12) * 100) }}%;"></div>
                         </div>
                     </td>
                     <td>Rs. {{ number_format($d->maintenance_charges) }}</td>
@@ -554,7 +554,7 @@
                     <td><span class="badge {{ $a->category==='B'?'badge-b':'badge-e' }}">{{ $a->category }}</span></td>
                     <td>{{ $a->covered_area }} Sq Ft</td>
                     <td>{{ $a->possession_date?->format('d-m-Y') ?? 'NULL' }}</td>
-                    <td><span class="badge {{ $a->due_months >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">{{ $a->due_months }}</span></td>
+                    <td><span class="badge {{ $a->overdue_months >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">{{ $a->overdue_months }}</span></td>
                     <td>{{ number_format($a->covered_area * $maintenanceRate, 2) }}</td>
                     <td>{{ number_format($a->maintenance_charges) }}</td>
                     <td>{{ $a->watch_ward_charges > 0 ? number_format($a->watch_ward_charges) : '—' }}</td>
@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function () {
         new ApexCharts(document.querySelector('#dueMonthsHistogram'), {
             chart: { type: 'bar', height: 220, toolbar: { show: false } },
             series: [{ name: 'Allottees', data: monthsData.map(d => d.count) }],
-            xaxis: { categories: monthsData.map(d => d.due_months + (d.due_months == 1 ? ' Mo' : ' Mos')), title: { text: 'Months Overdue' } },
+            xaxis: { categories: monthsData.map(d => d.overdue_months + (d.overdue_months == 1 ? ' Mo' : ' Mos')), title: { text: 'Months Overdue' } },
             yaxis: { title: { text: 'Number of Allottees' } },
             colors: ['#dc2626'],
             plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },

@@ -38,3 +38,8 @@ z.png
 "image 36*"
 GOP.zip
 lively_setup_x86_full_v2210.exe
+
+# Local scratch and database backups
+/scratch
+/*backup*.sqlite
+database/*backup*.sqlite

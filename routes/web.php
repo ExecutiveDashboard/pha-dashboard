@@ -9,6 +9,7 @@ use App\Http\Controllers\AllotteePortalController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\MonthlyBillController;
+use App\Http\Controllers\CategoryEBillingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 
@@ -48,6 +49,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/monthly-bills/{bill}/pay',          [MonthlyBillController::class, 'recordPayment'])->name('monthly-bills.pay');
     Route::post('/monthly-bills/{bill}/settle',       [MonthlyBillController::class, 'settle'])->name('monthly-bills.settle');
     Route::get('/monthly-bills/{bill}/check-psid',   [MonthlyBillController::class, 'checkPsid'])->name('monthly-bills.check-psid');
+
+    // ── MONTHLY BILL MANAGEMENT - CATEGORY E ────────────────────────
+    Route::get('/monthly-bills/category-e',                      [CategoryEBillingController::class, 'index'])->name('monthly-bills-e.index');
+    Route::post('/monthly-bills/category-e/generate',            [CategoryEBillingController::class, 'generate'])->name('monthly-bills-e.generate');
+    Route::post('/monthly-bills/category-e/{bill}/pay',          [CategoryEBillingController::class, 'recordPayment'])->name('monthly-bills-e.pay');
+    Route::post('/monthly-bills/category-e/{bill}/settle',       [CategoryEBillingController::class, 'settle'])->name('monthly-bills-e.settle');
+    Route::get('/monthly-bills/category-e/{bill}/check-psid',   [CategoryEBillingController::class, 'checkPsid'])->name('monthly-bills-e.check-psid');
 
     // ── NOTIFICATIONS (WhatsApp / SMS) ─────────────────────────────
     Route::get('/notifications',          [NotificationController::class, 'index'])->name('notifications.index');
