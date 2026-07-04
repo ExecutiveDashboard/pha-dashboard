@@ -1,0 +1,14 @@
+[build]
+  # Build command to compile Vite/Tailwind assets
+  command = "npm run build"
+  # Netlify will publish the compiled public directory
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Fallback headers for static assets
+[[headers]]
+  for = "/build/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
