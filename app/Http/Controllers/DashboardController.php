@@ -38,7 +38,7 @@ class DashboardController extends Controller
             DB::raw('COUNT(*) as count'), 
             DB::raw('MAX(covered_area) as typical_area'),
             DB::raw('SUM(covered_area) as total_area')
-        )->whereNotNull('category')->where('category', '!=', '')->groupBy('category')->orderBy('category')->get();
+        )->active()->whereNotNull('category')->where('category', '!=', '')->groupBy('category')->orderBy('category')->get();
 
         $totalAllottees = $categoryStatsRaw->sum('count');
         $totalMonthlyBilling = 0;
@@ -63,7 +63,7 @@ class DashboardController extends Controller
 
 
         // ── W&W ELIGIBILITY BREAKDOWN ──────────────────────────────────
-        $allAllottees = Allottee::select('possession_date')->get();
+        $allAllottees = Allottee::where('status', 'active')->select('possession_date')->get();
         $totalWWRecoverable = 0;
         $wwBeforeCount = 0;
         $wwAfterCount = 0;
@@ -124,8 +124,9 @@ class DashboardController extends Controller
         // ── DEFAULTERS ─────────────────────────────────────────────────
         $threshold       = (int) Setting::getValue('defaulter_months_threshold', 3);
         $topCount        = (int) Setting::getValue('defaulter_top_count', 10);
-        $totalDefaulters = Allottee::where('overdue_months', '>=', $threshold)->count();
-        $defaulters      = Allottee::where('overdue_months', '>=', $threshold)
+        $totalDefaulters = Allottee::active()->where('overdue_months', '>=', $threshold)->count();
+        $defaulters      = Allottee::active()
+                                    ->where('overdue_months', '>=', $threshold)
                                     ->orderByDesc('total_maintenance_charges')
                                     ->limit($topCount)->get();
 
@@ -143,7 +144,8 @@ class DashboardController extends Controller
             ];
             
             foreach ($categoryStats as $cat) {
-                $totalForCat = Allottee::where('category', $cat->name)
+                $totalForCat = Allottee::active()
+                    ->where('category', $cat->name)
                     ->where(function($q) use ($monthEnd) {
                         $q->whereNull('possession_date')
                           ->orWhere('possession_date', '<=', $monthEnd);
@@ -161,12 +163,12 @@ class DashboardController extends Controller
             DB::raw('COUNT(*) as count'),
             DB::raw('SUM(covered_area) * ' . $maintenanceRate . ' as monthly_billing'),
             DB::raw('SUM(covered_area) * ' . $maintenanceRate . ' * 12 as yearly_billing')
-        )->groupBy('city')->orderByDesc('count')->get();
+        )->active()->groupBy('city')->orderByDesc('count')->get();
 
 
 
         // ── SAMPLE ALLOTTEES (bottom table, top 15 by total) ──────────
-        $sampleAllottees = Allottee::orderByDesc('total_maintenance_charges')->limit(15)->get();
+        $sampleAllottees = Allottee::active()->orderByDesc('total_maintenance_charges')->limit(15)->get();
 
         // ── BPS + DUE MONTHS + POSSESSION (for charts) ───────────────
         $bpsCounts = [];
@@ -177,7 +179,7 @@ class DashboardController extends Controller
         $bpsCounts["Federal Govt (FG)"] = 0;
         $bpsCounts["Other Quotas"] = 0;
 
-        $allAllottees = Allottee::select('bps', 'gp')->get();
+        $allAllottees = Allottee::active()->select('bps', 'gp')->get();
         foreach ($allAllottees as $a) {
             $bpsRaw = trim($a->bps ?? '');
             $gpRaw = strtoupper(trim($a->gp ?? ''));
@@ -242,13 +244,14 @@ class DashboardController extends Controller
         }
 
         $monthsDistribution = Allottee::select('overdue_months', DB::raw('count(*) as count'))
-                                ->whereNotNull('overdue_months')->groupBy('overdue_months')
+                                ->active()->whereNotNull('overdue_months')->groupBy('overdue_months')
                                 ->orderBy('overdue_months')->get();
         $possessionTimeline = Allottee::select(
                                 DB::raw("strftime('%Y', possession_date) as year"),
                                 DB::raw("strftime('%Y-%m', possession_date) as month"),
                                 DB::raw('count(*) as count')
                                 )
+                                ->active()
                                 ->whereNotNull('possession_date')
                                 ->groupBy('month')
                                 ->orderBy('month')
@@ -264,6 +267,7 @@ class DashboardController extends Controller
             DB::raw("SUM(CASE WHEN transfer IS NOT NULL AND transfer != '' AND transfer != '0' THEN 1 ELSE 0 END) as transferred"),
             DB::raw('SUM(covered_area) * ' . $maintenanceRate . ' as monthly_billing')
         )
+        ->active()
         ->whereNotNull('block_no')
         ->groupBy('category', 'block_no')
         ->orderBy('category')
@@ -272,15 +276,20 @@ class DashboardController extends Controller
 
         // Block KPIs
         $blockWithMaxAllottees = $blockData->sortByDesc('total')->first();
-        $totalHandedOver       = Allottee::whereNotNull('handed_over')
+        $totalHandedOver       = Allottee::active()->whereNotNull('handed_over')
             ->where('handed_over', '!=', '')->where('handed_over', '!=', '0')->count();
-        $totalTempOcc          = Allottee::whereNotNull('temporary_occupancy')
+        $totalTempOcc          = Allottee::active()->whereNotNull('temporary_occupancy')
             ->where('temporary_occupancy', '!=', '')->where('temporary_occupancy', '!=', '0')->count();
-        $totalTransferred      = Allottee::whereNotNull('transfer')
+        $totalTransferred      = Allottee::active()->whereNotNull('transfer')
             ->where('transfer', '!=', '')->where('transfer', '!=', '0')->count();
 
         $parkingRate = (float) Setting::getValue('parking_charges_rate', 500);
         $waterRate = (float) Setting::getValue('water_charges_rate', 1000);
+
+        // Load latest integrity report and last failure details via service
+        $integrityService = app(\App\Services\SystemIntegrityService::class);
+        $latestReport = $integrityService->getLatestReport();
+        $lastFailure = $integrityService->getLastFailure();
 
         return view('dashboard.index', compact(
             'totalAllottees', 'categoryStats',
@@ -297,7 +306,13 @@ class DashboardController extends Controller
             // block analytics
             'blockData', 'blockWithMaxAllottees',
             'totalHandedOver', 'totalTempOcc', 'totalTransferred',
-            'fiscalYear'
+            'fiscalYear', 'latestReport', 'lastFailure'
         ));
+    }
+
+    public function runHealthScan()
+    {
+        \Illuminate\Support\Facades\Artisan::call('system:integrity-check');
+        return redirect()->route('dashboard')->with('success', 'Database health audit scan completed successfully.');
     }
 }

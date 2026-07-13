@@ -9,6 +9,23 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Property extends Model
 {
+    protected static function booted()
+    {
+        static::saved(function ($property) {
+            // Automatically synchronize physical coordinates to all associated allottees
+            $updates = [
+                'block_no' => $property->block_no,
+                'floor'    => $property->floor,
+                'flat_no'  => $property->flat_no,
+                'category' => $property->category,
+            ];
+            
+            \App\Models\Allottee::withoutGlobalScopes()
+                ->where('property_id', $property->id)
+                ->update($updates);
+        });
+    }
+
     protected $fillable = [
         'project_id', 'block_no', 'floor', 'flat_no', 'category', 'type',
         'covered_area', 'open_area', 'plot_size', 'maintenance_rate', 'ww_amount',
@@ -38,7 +55,7 @@ class Property extends Model
 
     public function activeOwner(): HasOne
     {
-        return $this->hasOne(Allottee::class)->where('status', 'active');
+        return $this->hasOne(Allottee::class)->active();
     }
 
     public function tenants(): HasMany

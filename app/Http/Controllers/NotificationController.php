@@ -11,7 +11,8 @@ class NotificationController extends Controller
     /** GET /notifications — bulk messaging UI */
     public function index(Request $request)
     {
-        $allottees = Allottee::select('id','name','cell','cnic','block_no','flat_no','category','due_months','overdue_months')
+        $allottees = Allottee::active()
+            ->select('id','name','cell','cnic','block_no','flat_no','category','due_months','overdue_months')
             ->orderBy('name')
             ->get();
 

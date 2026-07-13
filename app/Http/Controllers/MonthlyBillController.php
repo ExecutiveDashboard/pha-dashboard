@@ -45,6 +45,13 @@ class MonthlyBillController extends Controller
         $request->validate(['month' => 'required|date_format:Y-m']);
         $month = $request->month;
 
+        // Run system integrity check safety audit via service (only block on CRITICAL health status)
+        $integrityService = app(\App\Services\SystemIntegrityService::class);
+        $report = $integrityService->getLatestReport() ?: $integrityService->run();
+        if ($report['overall_status'] === 'CRITICAL') {
+            return back()->with('error', "Aborted: Critical database integrity checks failed (System Health Score: {$report['health_score']}%). Please resolve all critical issues before generating bills.");
+        }
+
         // Enforce Billing Month Cap Rule (strict cap at July 2026)
         $isAdmin = (auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin'])) || (bool) Setting::getValue('billing_admin_override', 0);
         if (!$isAdmin && $month > '2026-07') {
@@ -93,11 +100,11 @@ class MonthlyBillController extends Controller
 
         // Project Scope Restriction: Enforce active project ID explicitly
         if ($activeProject) {
-            $allottees = Allottee::where('project_id', $activeProject->id)
+            $allottees = Allottee::active()->where('project_id', $activeProject->id)
                 ->where('category', 'B')
                 ->get();
         } else {
-            $allottees = Allottee::where('category', 'B')->get();
+            $allottees = Allottee::active()->where('category', 'B')->get();
         }
 
         $generated = 0;

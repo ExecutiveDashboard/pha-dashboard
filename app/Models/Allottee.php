@@ -76,6 +76,16 @@ class Allottee extends Model
         return $this->hasMany(Bill::class)->orderByDesc('bill_month');
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('allottees.status', 'active');
+    }
+
+    public function scopeCurrentOwner($query)
+    {
+        return $query->where('allottees.status', 'active');
+    }
+
     public function isDefaulter(): bool
     {
         $threshold = (int) Setting::getValue('defaulter_months_threshold', 3);

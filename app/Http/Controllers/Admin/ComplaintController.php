@@ -42,9 +42,12 @@ class ComplaintController extends Controller
                 $q->where('complaint_number', 'like', "%{$search}%")
                   ->orWhere('subject', 'like', "%{$search}%")
                   ->orWhereHas('allottee', function($allotteeQuery) use ($search) {
-                      $allotteeQuery->where('name', 'like', "%{$search}%")
-                                    ->orWhere('flat_no', 'like', "%{$search}%")
-                                    ->orWhere('block_no', 'like', "%{$search}%");
+                      $allotteeQuery->active()
+                                    ->where(function($sub) use ($search) {
+                                        $sub->where('name', 'like', "%{$search}%")
+                                            ->orWhere('flat_no', 'like', "%{$search}%")
+                                            ->orWhere('block_no', 'like', "%{$search}%");
+                                    });
                   });
             });
         }

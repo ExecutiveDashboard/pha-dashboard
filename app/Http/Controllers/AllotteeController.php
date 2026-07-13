@@ -10,7 +10,7 @@ class AllotteeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Allottee::where('status', 'active');
+        $query = Allottee::active();
 
         if ($request->filled('search')) {
             $s = trim($request->search);
@@ -42,8 +42,8 @@ class AllotteeController extends Controller
         }
 
         $allottees = $query->orderByDesc('total_maintenance_charges')->paginate(25)->withQueryString();
-        $cities = Allottee::where('status', 'active')->select('city')->distinct()->orderBy('city')->pluck('city');
-        $bpsList = Allottee::where('status', 'active')->select('bps')->distinct()->whereNotNull('bps')->orderBy('bps')->pluck('bps');
+        $cities = Allottee::active()->select('city')->distinct()->orderBy('city')->pluck('city');
+        $bpsList = Allottee::active()->select('bps')->distinct()->whereNotNull('bps')->orderBy('bps')->pluck('bps');
 
         return view('allottees.index', compact('allottees', 'cities', 'bpsList'));
     }
@@ -332,6 +332,13 @@ class AllotteeController extends Controller
                 'updated_at'     => now(),
             ]);
 
+            // Run integrity validation check post-transfer
+            $integrityService = app(\App\Services\SystemIntegrityService::class);
+            $report = $integrityService->run();
+            if ($report['overall_status'] === 'CRITICAL') {
+                throw new \RuntimeException("Ownership transfer aborted due to critical database integrity check failures.");
+            }
+
             return $newAllottee;
         });
 
@@ -341,9 +348,10 @@ class AllotteeController extends Controller
     public function blockVisual()
     {
         // Get all active allottees with block, floor, flat info and payment status
-        $allottees = Allottee::where('status', 'active')
-            ->select('id','name','block_no','floor','flat_no','category','due_months','overdue_months',
+        $allottees = Allottee::active()
+            ->select('id','property_id','name','block_no','floor','flat_no','category','due_months','overdue_months',
             'total_maintenance_charges','amount_paid','status', 'handed_over', 'temporary_occupancy')
+            ->with('property')
             ->get()
             ->map(function($a) {
                 $a->payment_status_computed = $a->payment_status;

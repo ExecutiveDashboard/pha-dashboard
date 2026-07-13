@@ -131,6 +131,85 @@
 .legend-color { width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; }
 </style>
 
+@if(isset($latestReport))
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="chart-card" style="background: linear-gradient(135deg, #ffffff, #fbfbfb); border-left: 5px solid {{ $latestReport['overall_status'] === 'HEALTHY' ? '#1B6B35' : ($latestReport['overall_status'] === 'WARNING' ? '#f59e0b' : '#dc2626') }};">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <div class="me-4 text-center">
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">System Health</span>
+                        <div class="fs-2 fw-black text-dark" style="font-weight: 900; line-height: 1.1;">{{ $latestReport['health_score'] }}%</div>
+                    </div>
+                    <div>
+                        <h6 class="m-0 fw-bold text-dark d-flex align-items-center" style="font-size: 15px;">
+                            <span class="me-2">
+                                @if($latestReport['overall_status'] === 'HEALTHY')
+                                    🟢 Healthy
+                                @elseif($latestReport['overall_status'] === 'WARNING')
+                                    🟡 Warning
+                                @else
+                                    🔴 Critical
+                                @endif
+                            </span>
+                            <span class="badge bg-light text-secondary border fw-normal me-2" style="font-size: 11px;">Last Scan: {{ date('d-M-Y H:i', strtotime($latestReport['timestamp'])) }}</span>
+                            <span class="badge bg-light text-secondary border fw-normal me-2" style="font-size: 11px;">Next Scan: {{ date('d-M-Y 02:00', strtotime($latestReport['timestamp'] . ' +1 day')) }}</span>
+                            <span class="badge bg-light text-{{ isset($lastFailure) ? 'danger' : 'secondary' }} border fw-normal me-2" style="font-size: 11px;">
+                                Last Failure: {{ isset($lastFailure) ? date('d-M-Y H:i', strtotime($lastFailure['timestamp'])) . ' (' . $lastFailure['failed_check'] . ')' : 'None' }}
+                            </span>
+                            <form action="{{ route('admin.health.scan') }}" method="POST" class="d-inline m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-xs btn-outline-success py-0 px-2 fw-bold" style="font-size: 10px; border-radius: 4px; line-height: 1.5; border-color: rgba(27, 107, 53, 0.4); color: #1B6B35;">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Run Scan
+                                </button>
+                            </form>
+                        </h6>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 12px;">Database validation checks running automatically. Reconciling inventory, active owners, billing, and transfers.</p>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 text-center" style="font-size: 12px;">
+                    @php
+                        // Helper to find check status from results
+                        $findStatus = function($name) use ($latestReport) {
+                            foreach ($latestReport['results'] as $res) {
+                                if (str_contains($res['name'], $name)) {
+                                    return $res['status'] === 'PASS' ? 'PASS' : $res['status'];
+                                }
+                            }
+                            return 'PASS';
+                        };
+                    @endphp
+                    <div class="px-3 py-2 bg-light border rounded" style="min-width: 100px;">
+                        <div class="text-muted fw-bold" style="font-size: 9px; text-transform: uppercase;">Properties</div>
+                        <strong class="{{ $findStatus('Duplicate Property Coordinates') === 'PASS' ? 'text-success' : 'text-danger' }}">{{ $findStatus('Duplicate Property Coordinates') === 'PASS' ? 'PASS' : 'FAIL' }}</strong>
+                    </div>
+                    <div class="px-3 py-2 bg-light border rounded" style="min-width: 100px;">
+                        <div class="text-muted fw-bold" style="font-size: 9px; text-transform: uppercase;">Owners</div>
+                        <strong class="{{ $findStatus('Multiple Active Owners per Property') === 'PASS' ? 'text-success' : 'text-danger' }}">{{ $findStatus('Multiple Active Owners per Property') === 'PASS' ? 'PASS' : 'FAIL' }}</strong>
+                    </div>
+                    <div class="px-3 py-2 bg-light border rounded" style="min-width: 100px;">
+                        <div class="text-muted fw-bold" style="font-size: 9px; text-transform: uppercase;">Billing</div>
+                        <strong class="{{ $findStatus('Duplicate Active Bills per Month') === 'PASS' ? 'text-success' : 'text-danger' }}">{{ $findStatus('Duplicate Active Bills per Month') === 'PASS' ? 'PASS' : 'FAIL' }}</strong>
+                    </div>
+                    <div class="px-3 py-2 bg-light border rounded" style="min-width: 100px;">
+                        <div class="text-muted fw-bold" style="font-size: 9px; text-transform: uppercase;">Transfers</div>
+                        <strong class="{{ $findStatus('Transfer Chain Deactivation Compliance') === 'PASS' ? 'text-success' : 'text-danger' }}">{{ $findStatus('Transfer Chain Deactivation Compliance') === 'PASS' ? 'PASS' : 'FAIL' }}</strong>
+                    </div>
+                    <div class="px-3 py-2 bg-light border rounded" style="min-width: 100px;">
+                        <div class="text-muted fw-bold" style="font-size: 9px; text-transform: uppercase;">Tenants</div>
+                        <strong class="{{ $findStatus('Active Tenants Without Valid Allottee/Property') === 'PASS' ? 'text-success' : 'text-danger' }}">{{ $findStatus('Active Tenants Without Valid Allottee/Property') === 'PASS' ? 'PASS' : 'FAIL' }}</strong>
+                    </div>
+                    <div class="px-3 py-2 bg-light border rounded" style="min-width: 100px;">
+                        <div class="text-muted fw-bold" style="font-size: 9px; text-transform: uppercase;">Complaints</div>
+                        <strong class="{{ $findStatus('Complaints Referencing Invalid Owner/Property') === 'PASS' ? 'text-success' : 'text-danger' }}">{{ $findStatus('Complaints Referencing Invalid Owner/Property') === 'PASS' ? 'PASS' : 'FAIL' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- ===== KPI STRIP ===== --}}
 <div class="kpi-strip mb-4">
     <div class="kpi-pill pill-blue">
