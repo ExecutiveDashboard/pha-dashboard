@@ -303,41 +303,44 @@
         </div>
     </div>
 
-    {{-- ── ALLOTTEE INFO STRIP ── --}}
-    <div class="allottee-strip">
+    {{-- ── PROPERTY, OWNER & TENANT INFO STRIP ── --}}
+    <div class="allottee-strip" style="grid-template-columns: repeat({{ $allottee->transfer_type ? 4 : 3 }}, 1fr); background: #f8fafc; border-bottom: 2px solid #1B6B35; padding: 14px 24px; display: grid; gap: 15px;">
         <div class="a-item">
-            <div class="lbl">Allottee Name</div>
-            <div class="val">{{ $allottee->display_name }}</div>
+            <div class="lbl" style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Property Information</div>
+            <div class="val" style="font-size: 13px; font-weight: 700; color: #1a2332; margin-top: 1px;">Blk {{ $allottee->block_no ?? '—' }} / Flr {{ $allottee->floor ?? '—' }} / Flat {{ $allottee->flat_no ?? '—' }}</div>
+            <div style="font-size: 11px; color: #475569; margin-top: 2px;">Type: {{ ucfirst($allottee->property->type ?? 'Apartment') }} | Cat-{{ $allottee->category }} ({{ $allottee->covered_area }} Sq Ft)</div>
         </div>
         <div class="a-item">
-            <div class="lbl">CNIC</div>
-            <div class="val">{{ $allottee->display_cnic }}</div>
+            <div class="lbl" style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Current Owner (Allottee)</div>
+            <div class="val" style="font-size: 13px; font-weight: 700; color: #1a2332; margin-top: 1px;">{{ $allottee->name }}</div>
+            <div style="font-size: 11px; color: #475569; margin-top: 2px;">CNIC: {{ $allottee->cnic }} | Cell: {{ $allottee->cell ?? '—' }}</div>
         </div>
+        @if($allottee->transfer_type)
         <div class="a-item">
-            <div class="lbl">Cell / Mobile</div>
-            <div class="val">{{ $allottee->cell ?? '—' }}</div>
+            <div class="lbl" style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Ownership Information</div>
+            <div class="val" style="font-size: 12px; font-weight: 700; color: #1a2332; margin-top: 1px;">{{ ucfirst($allottee->transfer_type) }}</div>
+            <div style="font-size: 11px; color: #475569; margin-top: 2px; line-height: 1.4;">
+                <strong>Since:</strong> {{ $allottee->ownership_start_date?->format('d M Y') ?? '—' }}<br>
+                <strong>Effective Date:</strong> {{ $allottee->ownership_start_date?->format('d M Y') ?? '—' }}
+            </div>
         </div>
+        @endif
         <div class="a-item">
-            <div class="lbl">Category / Area</div>
-            <div class="val">Cat-{{ $allottee->category }} / {{ $allottee->covered_area }} Sq Ft</div>
-        </div>
-        <div class="a-item">
-            <div class="lbl">Block / Floor / Flat</div>
-            <div class="val">Blk {{ $allottee->block_no ?? '—' }} / Flr {{ $allottee->floor ?? '—' }} / Flat {{ $allottee->flat_no ?? '—' }}</div>
-        </div>
-        <div class="a-item">
-            <div class="lbl">Membership No.</div>
-            <div class="val">{{ $allottee->membership_no ?? '—' }}</div>
-        </div>
-        <div class="a-item">
-            <div class="lbl">Possession Date</div>
-            <div class="val">{{ $allottee->possession_date?->format('d M Y') ?? 'Not Recorded' }}</div>
-        </div>
-        <div class="a-item">
-            <div class="lbl">BPS Grade</div>
-            <div class="val">{{ $allottee->bps ? 'BPS-'.$allottee->bps : '—' }}</div>
+            <div class="lbl" style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Occupancy Status</div>
+            <div class="val" style="margin-top: 2px;">
+                <span class="badge {{ $allottee->occupancy_status == 'tenant_occupied' ? 'bg-warning text-dark' : 'bg-success text-white' }}" style="font-size: 11px; padding: 4px 8px; font-weight: 700; border-radius: 4px;">
+                    {{ $allottee->occupancy_status == 'tenant_occupied' ? 'Tenant Occupied' : 'Owner Occupied' }}
+                </span>
+            </div>
+            @if($allottee->occupancy_status == 'tenant_occupied' && ($activeTenant = $allottee->activeTenant()))
+                <div style="font-size: 11px; color: #475569; margin-top: 4px; line-height: 1.4;">
+                    <strong>Tenant:</strong> {{ $activeTenant->tenant_name }} ({{ $activeTenant->tenant_cnic }})<br>
+                    <strong>Cell:</strong> {{ $activeTenant->mobile_no }} | <strong>Period:</strong> {{ $activeTenant->agreement_start_date?->format('M Y') ?? '—' }} to {{ $activeTenant->agreement_expiry_date?->format('M Y') ?? '—' }}
+                </div>
+            @endif
         </div>
     </div>
+
 
     {{-- ── BILL BODY ── --}}
     <div class="bill-body">

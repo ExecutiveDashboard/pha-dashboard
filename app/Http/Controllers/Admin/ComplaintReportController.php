@@ -15,7 +15,7 @@ class ComplaintReportController extends Controller
 {
     public function dashboard()
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -106,7 +106,7 @@ class ComplaintReportController extends Controller
 
     public function reports(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -142,7 +142,7 @@ class ComplaintReportController extends Controller
 
     public function export(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 

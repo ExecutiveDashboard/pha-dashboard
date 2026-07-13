@@ -110,7 +110,25 @@
                     <td>Block: <strong>{{ $complaint->allottee->block_no }}</strong> | Flat: <strong>{{ $complaint->allottee->flat_no }}</strong> | Floor: {{ $complaint->allottee->floor }}</td>
                 </tr>
                 <tr>
-                    <td class="bg-light fw-bold">Contact Details</td>
+                    <td class="bg-light fw-bold">Occupancy Status</td>
+                    <td>
+                        <span class="badge {{ $complaint->allottee->occupancy_status === 'tenant_occupied' ? 'bg-warning text-dark' : 'bg-success text-white' }}" style="font-size: 11px; padding: 4px 8px; font-weight: 700; border-radius: 4px;">
+                            {{ $complaint->allottee->occupancy_status === 'tenant_occupied' ? 'Tenant Occupied' : 'Owner Occupied' }}
+                        </span>
+                    </td>
+                </tr>
+                @if($complaint->allottee->occupancy_status === 'tenant_occupied' && ($activeTenant = $complaint->allottee->activeTenant()))
+                <tr>
+                    <td class="bg-light fw-bold">Tenant Name</td>
+                    <td class="fw-bold text-success">{{ $activeTenant->tenant_name }}</td>
+                </tr>
+                <tr>
+                    <td class="bg-light fw-bold">Tenant Mobile</td>
+                    <td>Cell: <strong>{{ $activeTenant->mobile_no }}</strong></td>
+                </tr>
+                @endif
+                <tr>
+                    <td class="bg-light fw-bold">Contact Details (Owner)</td>
                     <td>Cell: <strong>{{ $complaint->allottee->cell ?? 'N/A' }}</strong></td>
                 </tr>
                 <tr>

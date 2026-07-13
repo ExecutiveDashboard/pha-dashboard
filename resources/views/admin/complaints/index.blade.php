@@ -126,7 +126,12 @@
                             <td style="font-size: 11.5px;">{{ $c->created_at->format('d M Y') }}<br><small class="text-muted">{{ $c->created_at->format('h:i A') }}</small></td>
                             <td>
                                 <div class="fw-bold">{{ $c->allottee->name ?? 'N/A' }}</div>
-                                <small class="text-muted">Blk {{ $c->allottee->block_no ?? '—' }} / Flat {{ $c->allottee->flat_no ?? '—' }}</small>
+                                <div class="d-flex align-items-center gap-1 mt-1">
+                                    <small class="text-muted">Blk {{ $c->allottee->block_no ?? '—' }} / Flat {{ $c->allottee->flat_no ?? '—' }}</small>
+                                    @if($c->allottee && $c->allottee->occupancy_status === 'tenant_occupied')
+                                        <span class="badge bg-warning text-dark" style="font-size: 9px; padding: 2px 4px; font-weight: 700; border-radius: 4px;">Tenant</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="fw-bold" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $c->subject }}</td>
                             <td><span class="badge bg-light text-dark border">{{ $c->category->name ?? 'Unknown' }}</span></td>

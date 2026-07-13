@@ -46,7 +46,7 @@ class MonthlyBillController extends Controller
         $month = $request->month;
 
         // Enforce Billing Month Cap Rule (strict cap at July 2026)
-        $isAdmin = (auth()->check() && auth()->user()->role === 'admin') || (bool) Setting::getValue('billing_admin_override', 0);
+        $isAdmin = (auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin'])) || (bool) Setting::getValue('billing_admin_override', 0);
         if (!$isAdmin && $month > '2026-07') {
             return back()->with('error', "Billing generation beyond July 2026 is restricted.");
         }
@@ -121,7 +121,10 @@ class MonthlyBillController extends Controller
             $allottee->maintenance_charges = $maintenance;
 
             // W&W: Calculate dynamically for completed months
-            $wwStartDate = Carbon::create(2023, 7, 1);
+            $cutoffSetting = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
+            $wwStartDate = $activeProject && $activeProject->ww_cutoff_date 
+                ? Carbon::parse($activeProject->ww_cutoff_date) 
+                : Carbon::parse($cutoffSetting);
             $wwEndDate = $allottee->possession_date ? clone $allottee->possession_date : Carbon::now();
             $wwMonths = 0;
             if ($wwEndDate->gt($wwStartDate)) {
@@ -139,8 +142,8 @@ class MonthlyBillController extends Controller
 
             // Calculate Fine dynamically on pending amount
             $oldFine = $allottee->fine ?? 0;
-            // The pending balance before generating this month's new fine
-            $pendingBeforeFine = max(0, ($maintenance + $ww + $oldFine) - $allottee->amount_paid);
+            // The pending balance before generating this month's new fine (exclude old fine from compounding)
+            $pendingBeforeFine = max(0, ($maintenance + $ww) - $allottee->amount_paid);
             
             // We only fine the ARREARS, not the brand new current month rent.
             $currentMonthRent = round($monthlyBase, 2);
@@ -201,45 +204,24 @@ class MonthlyBillController extends Controller
         $difference = $paid - $oldPaid;
 
         \Illuminate\Support\Facades\DB::transaction(function() use ($bill, $paid, $request, $difference) {
-            // Lock the target bill to prevent concurrent modifications
             $lockedBill = Bill::lockForUpdate()->findOrFail($bill->id);
+            $lockedAllottee = Allottee::lockForUpdate()->findOrFail($lockedBill->allottee_id);
 
-            $lockedBill->recordPaymentAmount($paid, $request->payment_mode, $request->payment_date, $request->payment_ref);
-
-            // Propagate payment to prior unpaid bills if fully paid
-            if ($lockedBill->status === 'paid') {
-                Bill::withoutGlobalScopes()
-                    ->where('allottee_id', $lockedBill->allottee_id)
-                    ->where('bill_month', '<', $lockedBill->bill_month)
-                    ->whereNotIn('status', ['paid', 'settled'])
-                    ->lockForUpdate()
-                    ->get()
-                    ->each(function ($b) use ($request) {
-                        $b->update([
-                            'status'       => 'paid',
-                            'paid_amount'  => $b->total_amount,
-                            'is_locked'    => true,
-                            'locked_at'    => now(),
-                            'payment_mode' => $request->payment_mode,
-                            'payment_date' => $request->payment_date,
-                            'payment_ref'  => $request->payment_ref ?? 'Cumulative Settlement',
-                        ]);
-                    });
-            }
-
-            // Sync with Allottee's historical backlog
             if ($difference != 0) {
-                // Lock Allottee row to prevent race conditions on increment
-                $lockedAllottee = Allottee::lockForUpdate()->findOrFail($lockedBill->allottee_id);
-                $lockedAllottee->increment('amount_paid', $difference);
-                
-                if ($paid > 0) {
-                    $lockedAllottee->update([
-                        'payment_date' => $request->payment_date,
-                        'payment_mode' => $request->payment_mode,
-                        'payment_ref'  => $request->payment_ref,
-                    ]);
-                }
+                // Log the payment transaction (reconciling difference)
+                \App\Models\PaymentTransaction::create([
+                    'allottee_id'  => $lockedAllottee->id,
+                    'project_id'   => $lockedAllottee->project_id,
+                    'bill_id'      => $lockedBill->id,
+                    'amount_paid'  => $difference,
+                    'payment_mode' => $request->payment_mode,
+                    'payment_date' => $request->payment_date,
+                    'payment_ref'  => $request->payment_ref ?? 'Bill Adjust',
+                    'created_by'   => auth()->id(),
+                ]);
+
+                // Recalculate statuses
+                $lockedAllottee->recalculateBillingStatuses();
             }
         });
 
@@ -258,48 +240,31 @@ class MonthlyBillController extends Controller
         $difference = $total - $oldPaid;
 
         \Illuminate\Support\Facades\DB::transaction(function() use ($bill, $total, $request, $difference) {
-            // Lock target bill
             $lockedBill = Bill::lockForUpdate()->findOrFail($bill->id);
+            $lockedAllottee = Allottee::lockForUpdate()->findOrFail($lockedBill->allottee_id);
 
+            if ($difference != 0) {
+                // Log settlement as a transaction
+                \App\Models\PaymentTransaction::create([
+                    'allottee_id'  => $lockedAllottee->id,
+                    'project_id'   => $lockedAllottee->project_id,
+                    'bill_id'      => $lockedBill->id,
+                    'amount_paid'  => $difference,
+                    'payment_mode' => 'waived/settled',
+                    'payment_date' => now(),
+                    'payment_ref'  => 'Admin Settlement: ' . substr($request->settled_note, 0, 50),
+                    'created_by'   => auth()->id(),
+                ]);
+
+                // Recalculate statuses
+                $lockedAllottee->recalculateBillingStatuses();
+            }
+
+            // Sync notes on the targeted bill itself
             $lockedBill->update([
-                'status'       => 'settled',
-                'paid_amount'  => $total,
                 'settled_by'   => auth()->user() ? auth()->user()->name : 'System',
                 'settled_note' => $request->settled_note,
-                'is_locked'    => true,
-                'locked_at'    => now(),
             ]);
-
-            // Propagate settlement to prior unpaid bills
-            Bill::withoutGlobalScopes()
-                ->where('allottee_id', $lockedBill->allottee_id)
-                ->where('bill_month', '<', $lockedBill->bill_month)
-                ->whereNotIn('status', ['paid', 'settled'])
-                ->lockForUpdate()
-                ->get()
-                ->each(function ($b) use ($lockedBill, $request) {
-                    $b->update([
-                        'status'       => 'settled',
-                        'paid_amount'  => $b->total_amount,
-                        'is_locked'    => true,
-                        'locked_at'    => now(),
-                        'payment_mode' => 'waived/settled',
-                        'payment_date' => now(),
-                        'payment_ref'  => 'Admin Settlement',
-                        'settled_by'   => auth()->user() ? auth()->user()->name : 'System',
-                        'settled_note' => 'Manually settled via latest cumulative bill settlement. Note: ' . $request->settled_note,
-                    ]);
-                });
-
-            if ($difference > 0) {
-                $lockedAllottee = Allottee::lockForUpdate()->findOrFail($lockedBill->allottee_id);
-                $lockedAllottee->increment('amount_paid', $difference);
-                $lockedAllottee->update([
-                    'payment_date' => now(),
-                    'payment_mode' => 'waived/settled',
-                    'payment_ref'  => 'Admin Settlement',
-                ]);
-            }
         });
 
         return back()->with('success', 'Bill manually settled for ' . $bill->allottee->name);

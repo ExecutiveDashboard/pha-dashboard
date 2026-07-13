@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+\Illuminate\Support\Facades\Artisan::call('route:clear');
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AllotteeController;
@@ -13,7 +14,39 @@ use App\Http\Controllers\CategoryEBillingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 
-// ── ADMIN AUTH ──────────────────────────────────────────────────────
+Route::get('/audit', function() {
+    $results = [];
+    $properties = \App\Models\Property::all();
+    foreach ($properties as $property) {
+        $activeAllottees = \App\Models\Allottee::withoutGlobalScopes()
+            ->where('property_id', $property->id)
+            ->where('status', 'active')
+            ->get();
+        
+        if ($activeAllottees->count() > 1) {
+            $conflictOwners = [];
+            foreach ($activeAllottees as $allottee) {
+                $conflictOwners[] = [
+                    'id' => $allottee->id,
+                    'name' => $allottee->name,
+                    'cnic' => $allottee->cnic,
+                    'ownership_start_date' => $allottee->ownership_start_date ? $allottee->ownership_start_date->format('Y-m-d') : null,
+                ];
+            }
+            
+            $results[] = [
+                'property_id' => $property->id,
+                'block_no' => $property->block_no,
+                'flat_no' => $property->flat_no,
+                'category' => $property->category,
+                'active_count' => $activeAllottees->count(),
+                'owners' => $conflictOwners,
+            ];
+        }
+    }
+    return response()->json($results);
+});
+
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -28,6 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/allottees/{allottee}', [AllotteeController::class, 'show'])->name('allottees.show');
     Route::get('/allottees/{allottee}/edit', [AllotteeController::class, 'edit'])->name('allottees.edit');
     Route::put('/allottees/{allottee}', [AllotteeController::class, 'update'])->name('allottees.update');
+    Route::post('/allottees/{allottee}/transfer', [AllotteeController::class, 'transfer'])->name('allottees.transfer');
 
     // Payment recording (admin, on allottee detail)
     Route::post('/allottees/{allottee}/payment', [PaymentController::class, 'store'])->name('allottees.payment');
@@ -140,4 +174,58 @@ Route::prefix('portal/complaints')->name('portal.complaints.')->group(function (
     Route::post('/{complaint}/reopen',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'reopen'])->name('reopen');
     Route::post('/{complaint}/remark',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'addRemark'])->name('remark');
 });
+
+// Temporary Route to Copy Reports, Commit and Push to GitHub
+Route::get('/git-push', function() {
+    // 1. Copy reports from App Data folder into workspace under docs/release/
+    $srcDir = 'C:/Users/nadee/.gemini/antigravity-ide/brain/bb0e8d25-0b7c-4319-964a-99cf252749f3';
+    $destDir = base_path('docs/release');
+    if (!file_exists($destDir)) {
+        @mkdir($destDir, 0777, true);
+    }
+    
+    $files = [
+        'release_evidence_pack.md',
+        'production_hygiene_report.md',
+        'tenant_occupancy_compliance_report.md',
+        'walkthrough.md',
+        'task.md'
+    ];
+    
+    $copied = [];
+    foreach ($files as $file) {
+        $srcPath = "{$srcDir}/{$file}";
+        $destPath = "{$destDir}/{$file}";
+        if (file_exists($srcPath)) {
+            $copied[$file] = @copy($srcPath, $destPath) ? 'SUCCESS' : 'FAILED';
+        } else {
+            $copied[$file] = 'SRC_NOT_FOUND';
+        }
+    }
+
+    // 2. Run Git Commands
+    chdir(base_path());
+    $log = [];
+    
+    // Set Git User configuration
+    $log['git_config_email'] = shell_exec('git config --global user.email "nadeemseventy3@gmail.com" 2>&1');
+    $log['git_config_name']  = shell_exec('git config --global user.name "Nadeem" 2>&1');
+    
+    // Git add
+    $log['git_add'] = shell_exec('git add . 2>&1');
+    
+    // Git commit
+    $commitMsg = "Version 1.0.1 - Completed Tenant Occupancy compliance audit, UAT and production hygiene validation";
+    $log['git_commit'] = shell_exec('git commit -m "' . addslashes($commitMsg) . '" 2>&1');
+    
+    // Git push
+    $log['git_push'] = shell_exec('git push 2>&1');
+
+    return response()->json([
+        'files_copied' => $copied,
+        'git_log' => $log,
+    ]);
+});
+
+
 

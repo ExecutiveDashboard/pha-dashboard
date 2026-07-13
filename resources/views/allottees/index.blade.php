@@ -90,7 +90,12 @@
                     <td style="color:#94a3b8;font-size:12px;">{{ $allottees->firstItem() + $loop->index }}</td>
                     <td>
                         <div style="font-weight:600;font-size:13px;">{{ $a->name ?? '—' }}</div>
-                        <div style="font-size:11px;color:#94a3b8;">{{ $a->cnic ?? '' }}</div>
+                        <div style="font-size:11px;color:#94a3b8;">
+                            {{ $a->cnic ?? '' }}
+                            @if($a->occupancy_status === 'tenant_occupied' && ($activeTenant = $a->activeTenant()))
+                                <br><span class="text-success" style="font-weight:600;">Tenant: {{ $activeTenant->tenant_name }}</span>
+                            @endif
+                        </div>
                     </td>
                     <td style="font-size:12px;">{{ $a->file_no }}</td>
                     <td><span class="badge {{ $a->category==='B'?'badge-b':'badge-e' }}">{{ $a->category }}</span></td>

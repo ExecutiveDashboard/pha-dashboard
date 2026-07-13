@@ -31,7 +31,7 @@ class StaffAttendanceController extends Controller
      */
     public function index(Request $request)
     {
-        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -83,7 +83,7 @@ class StaffAttendanceController extends Controller
      */
     public function save(Request $request)
     {
-        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 

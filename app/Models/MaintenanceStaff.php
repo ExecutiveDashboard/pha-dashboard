@@ -9,10 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MaintenanceStaff extends Model
 {
+    protected static function booted()
+    {
+        static::addGlobalScope('project', function ($builder) {
+            $activeProject = \App\Models\Project::active();
+            if ($activeProject) {
+                $builder->where('maintenance_staff.project_id', $activeProject->id);
+            }
+        });
+    }
+
     protected $table = 'maintenance_staff';
 
     protected $fillable = [
-        'user_id', 'name', 'designation', 'phone', 'is_active',
+        'project_id', 'user_id', 'name', 'designation', 'phone', 'is_active',
         // HR fields
         'cnic', 'joining_date', 'shift', 'salary_type',
         'basic_salary', 'daily_rate', 'allowances',

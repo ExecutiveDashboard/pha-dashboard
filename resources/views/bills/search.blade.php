@@ -88,7 +88,12 @@
                 <tr>
                     <td>
                         <div style="font-weight:700;font-size:13px;">{{ $a->name ?? 'N/A' }}</div>
-                        <div style="font-size:11px;color:#94a3b8;">{{ $a->cnic ?? '—' }}</div>
+                        <div style="font-size:11px;color:#94a3b8;">
+                            {{ $a->cnic ?? '—' }}
+                            @if($a->occupancy_status === 'tenant_occupied' && ($activeTenant = $a->activeTenant()))
+                                <br><span class="text-success" style="font-weight:600;">Tenant: {{ $activeTenant->tenant_name }}</span>
+                            @endif
+                        </div>
                     </td>
                     <td style="font-weight:600;">{{ $a->file_no }}</td>
                     <td>

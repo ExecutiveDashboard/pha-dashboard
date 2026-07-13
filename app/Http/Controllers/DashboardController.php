@@ -59,7 +59,7 @@ class DashboardController extends Controller
         
         // ── YEARLY ACTUAL VS FORECAST ─────────────────────────────────
         $forecastYearly = $totalMonthlyBilling * 12;
-        $actualYearly   = (float) Bill::where('bill_month', 'like', date('Y').'-%')->sum('paid_amount');
+        $actualYearly   = (float) \App\Models\PaymentTransaction::whereYear('payment_date', date('Y'))->sum('amount_paid');
 
 
         // ── W&W ELIGIBILITY BREAKDOWN ──────────────────────────────────
@@ -104,9 +104,22 @@ class DashboardController extends Controller
         $fyStart = substr($fiscalYear, 0, 4) . '-07'; // e.g. 2025-07
         $fyEnd   = "20" . substr($fiscalYear, -2) . '-06'; // e.g. 2026-06
         
-        $billsInFy = Bill::whereBetween('bill_month', [$fyStart, $fyEnd]);
-        $totalPaid    = (float) $billsInFy->sum('paid_amount');
-        $totalPending = (float) $billsInFy->sum('total_amount') - $totalPaid;
+        $fyStartDate = Carbon::createFromFormat('Y-m', $fyStart)->startOfMonth()->format('Y-m-d');
+        $fyEndDate   = Carbon::createFromFormat('Y-m', $fyEnd)->endOfMonth()->format('Y-m-d');
+
+        $totalPaid    = (float) \App\Models\PaymentTransaction::whereBetween('payment_date', [$fyStartDate, $fyEndDate])->sum('amount_paid');
+
+        // Sum the pending amounts from the latest bill of each allottee generated within this FY
+        $latestBillIds = Bill::withoutGlobalScopes()
+            ->select(DB::raw('MAX(id) as id'))
+            ->whereBetween('bill_month', [$fyStart, $fyEnd])
+            ->groupBy('allottee_id')
+            ->pluck('id');
+
+        $totalPending = (float) Bill::withoutGlobalScopes()
+            ->whereIn('id', $latestBillIds)
+            ->get()
+            ->sum(fn($b) => max(0, (float)$b->total_amount - (float)$b->paid_amount));
 
         // ── DEFAULTERS ─────────────────────────────────────────────────
         $threshold       = (int) Setting::getValue('defaulter_months_threshold', 3);
@@ -118,7 +131,8 @@ class DashboardController extends Controller
 
         // ── MONTHLY BILLING TREND (last 6 months) ─────────────────────
         $trendData = [];
-        $endDate   = Carbon::create(2025, 5, 31);
+        $endDateSetting = Setting::getValue('current_billing_month', '2026-07');
+        $endDate = Carbon::createFromFormat('Y-m', $endDateSetting)->endOfMonth();
         for ($i = 5; $i >= 0; $i--) {
             $month    = $endDate->copy()->subMonths($i);
             $monthEnd = $month->copy()->endOfMonth()->format('Y-m-d');

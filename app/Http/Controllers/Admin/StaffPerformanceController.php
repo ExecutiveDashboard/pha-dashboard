@@ -16,7 +16,7 @@ class StaffPerformanceController extends Controller
      */
     public function index(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -92,7 +92,7 @@ class StaffPerformanceController extends Controller
      */
     public function show(MaintenanceStaff $staff, Request $request)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'data_entry', 'viewer', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 

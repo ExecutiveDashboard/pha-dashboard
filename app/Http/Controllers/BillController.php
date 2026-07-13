@@ -255,6 +255,7 @@ class BillController extends Controller
         if (!auth()->check() && session('portal_allottee_id') !== $allottee->id) {
             abort(403, 'Unauthorized action.');
         }
+        $allottee->load(['property', 'tenants']);
         return view('bills.show', $this->billData($allottee));
     }
 
@@ -265,6 +266,7 @@ class BillController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        $allottee->load(['property', 'tenants']);
         $data = $this->billData($allottee);
         $pdf = Pdf::loadView('bills.pdf', $data)
             ->setPaper('a4', 'portrait')
@@ -296,14 +298,27 @@ class BillController extends Controller
 
         if (strlen($q) >= 3) {
             $searched = true;
-            $allottees = Allottee::where('name', 'like', "%{$q}%")
-                ->orWhere('cnic', 'like', "%{$q}%")
-                ->orWhere('file_no', 'like', "%{$q}%")
-                ->orWhere('membership_no', 'like', "%{$q}%")
-                ->orWhere('cell', 'like', "%{$q}%")
-                ->orderBy('name')
-                ->limit(30)
-                ->get();
+            $allottees = Allottee::where(function($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('cnic', 'like', "%{$q}%")
+                    ->orWhere('file_no', 'like', "%{$q}%")
+                    ->orWhere('membership_no', 'like', "%{$q}%")
+                    ->orWhere('cell', 'like', "%{$q}%")
+                    ->orWhereHas('property', function($pq) use ($q) {
+                        $pq->where('flat_no', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('tenants', function($tq) use ($q) {
+                        $tq->where('is_active', true)
+                           ->where(function($sub) use ($q) {
+                               $sub->where('tenant_name', 'like', "%{$q}%")
+                                   ->orWhere('tenant_cnic', 'like', "%{$q}%")
+                                   ->orWhere('mobile_no', 'like', "%{$q}%");
+                           });
+                    });
+            })
+            ->orderBy('name')
+            ->limit(30)
+            ->get();
         }
 
         return view('bills.search', compact('q', 'allottees', 'searched'));

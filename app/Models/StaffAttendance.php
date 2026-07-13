@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StaffAttendance extends Model
 {
+    protected static function booted()
+    {
+        static::addGlobalScope('project', function ($builder) {
+            $activeProject = \App\Models\Project::active();
+            if ($activeProject) {
+                $builder->whereHas('staff', function ($q) use ($activeProject) {
+                    $q->where('maintenance_staff.project_id', $activeProject->id);
+                });
+            }
+        });
+    }
+
     protected $table = 'staff_attendance';
 
     protected $fillable = [

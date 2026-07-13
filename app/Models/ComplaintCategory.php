@@ -7,7 +7,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ComplaintCategory extends Model
 {
-    protected $fillable = ['name', 'is_active'];
+    protected static function booted()
+    {
+        static::addGlobalScope('project', function ($builder) {
+            $activeProject = \App\Models\Project::active();
+            if ($activeProject) {
+                $builder->where('complaint_categories.project_id', $activeProject->id);
+            }
+        });
+    }
+
+    protected $fillable = ['project_id', 'name', 'is_active'];
 
     protected $casts = [
         'is_active' => 'boolean',

@@ -50,15 +50,19 @@ class NotificationController extends Controller
         // Simulate logging (create table if needed via migration later, use try/catch)
         try {
             foreach ($request->allottee_ids as $id) {
-                \Illuminate\Support\Facades\DB::table('notifications_log')->insert([
-                    'allottee_id' => $id,
-                    'channel'     => $request->channel,
-                    'message'     => substr($request->message, 0, 255),
-                    'status'      => 'sent',  // simulated
-                    'sent_by'     => auth()->user()->name,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
+                $allottee = Allottee::find($id);
+                if ($allottee) {
+                    \Illuminate\Support\Facades\DB::table('notifications_log')->insert([
+                        'project_id'  => $allottee->project_id,
+                        'allottee_id' => $id,
+                        'channel'     => $request->channel,
+                        'message'     => substr($request->message, 0, 255),
+                        'status'      => 'sent',  // simulated
+                        'sent_by'     => auth()->user()->name,
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             // Table may not exist yet — that's OK for presentation

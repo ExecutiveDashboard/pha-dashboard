@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Allottee;
+use App\Models\PaymentTransaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
@@ -16,29 +19,23 @@ class PaymentController extends Controller
             'payment_ref'  => 'nullable|string|max:100',
         ]);
 
-        \Illuminate\Support\Facades\DB::transaction(function() use ($request, $allottee) {
+        DB::transaction(function() use ($request, $allottee) {
             // Lock the allottee row to prevent concurrent modifications
             $lockedAllottee = Allottee::lockForUpdate()->findOrFail($allottee->id);
 
-            $lockedAllottee->amount_paid += $request->amount_paid;
-            $lockedAllottee->payment_mode = $request->payment_mode;
-            $lockedAllottee->payment_date = $request->payment_date;
-            $lockedAllottee->payment_ref = $request->payment_ref;
-            $lockedAllottee->save(); // Re-calculates overdue months automatically
+            // Log the payment transaction
+            PaymentTransaction::create([
+                'allottee_id'  => $lockedAllottee->id,
+                'project_id'   => $lockedAllottee->project_id,
+                'amount_paid'  => $request->amount_paid,
+                'payment_mode' => $request->payment_mode,
+                'payment_date' => $request->payment_date,
+                'payment_ref'  => $request->payment_ref,
+                'created_by'   => Auth::id(),
+            ]);
 
-            // Lock and retrieve the entire range of unpaid and partial bills ordered chronologically
-            $remaining = (float) $request->amount_paid;
-            $unpaid = \App\Models\Bill::withoutGlobalScopes()
-                ->where('allottee_id', $lockedAllottee->id)
-                ->whereNotIn('status', ['paid', 'settled'])
-                ->orderBy('bill_month', 'asc')
-                ->lockForUpdate()
-                ->get();
-
-            foreach ($unpaid as $b) {
-                if ($remaining <= 0) break;
-                $remaining = $b->recordPaymentAmount($remaining, $request->payment_mode, $request->payment_date, $request->payment_ref);
-            }
+            // Unified recalculation helper
+            $lockedAllottee->recalculateBillingStatuses();
         });
 
         return back()->with('success', 'Payment recorded successfully for ' . $allottee->name);

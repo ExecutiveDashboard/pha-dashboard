@@ -17,17 +17,32 @@ class BillingPropagationTest extends TestCase
     {
         parent::setUp();
 
-        // Create an active project
-        $this->project = Project::create([
-            'name' => 'Test Project',
-            'full_name' => 'Test Project Islamabad',
-            'code' => 'TEST',
-            'city' => 'Islamabad',
-            'maintenance_rate' => 3.00,
-            'ww_amount' => 5000.00,
-            'delay_percent' => 10.00,
-            'is_active' => true,
-        ]);
+        // Update existing project ID 1 (seeded by migrations) or create it if not present
+        $this->project = Project::find(1);
+        if (!$this->project) {
+            $this->project = Project::create([
+                'id' => 1,
+                'name' => 'Test Project',
+                'full_name' => 'Test Project Islamabad',
+                'code' => 'TEST',
+                'city' => 'Islamabad',
+                'maintenance_rate' => 3.00,
+                'ww_amount' => 5000.00,
+                'delay_percent' => 10.00,
+                'is_active' => true,
+            ]);
+        } else {
+            $this->project->update([
+                'name' => 'Test Project',
+                'full_name' => 'Test Project Islamabad',
+                'code' => 'TEST',
+                'city' => 'Islamabad',
+                'maintenance_rate' => 3.00,
+                'ww_amount' => 5000.00,
+                'delay_percent' => 10.00,
+                'is_active' => true,
+            ]);
+        }
         
         // Create an admin user for authentication in controller actions if needed
         $this->admin = User::create([

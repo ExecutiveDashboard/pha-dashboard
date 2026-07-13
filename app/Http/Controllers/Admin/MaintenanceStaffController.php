@@ -12,7 +12,7 @@ class MaintenanceStaffController extends Controller
 {
     public function index()
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -35,7 +35,7 @@ class MaintenanceStaffController extends Controller
 
     public function store(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -57,7 +57,11 @@ class MaintenanceStaffController extends Controller
             ],
         ]);
 
+        $activeProject = \App\Models\Project::active();
+        $projectId = $activeProject ? $activeProject->id : 1;
+
         MaintenanceStaff::create([
+            'project_id'   => $projectId,
             'name'         => $request->name,
             'designation'  => $request->designation,
             'phone'        => $request->phone,
@@ -77,7 +81,7 @@ class MaintenanceStaffController extends Controller
 
     public function update(Request $request, MaintenanceStaff $staff)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -119,7 +123,7 @@ class MaintenanceStaffController extends Controller
 
     public function destroy(MaintenanceStaff $staff)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'maintenance_supervisor'])) {
+        if (!in_array(auth()->user()->role, ['super_admin', 'admin', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 

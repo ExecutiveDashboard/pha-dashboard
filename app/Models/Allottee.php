@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Allottee extends Model
 {
@@ -18,11 +19,24 @@ class Allottee extends Model
 
         static::saving(function ($allottee) {
             $allottee->overdue_months = $allottee->calculateOverdueMonths();
+
+            // Validate that one property can have only one active/current owner at a time
+            if ($allottee->status === 'active' && $allottee->property_id) {
+                $exists = static::withoutGlobalScopes()
+                    ->where('property_id', $allottee->property_id)
+                    ->where('status', 'active')
+                    ->where('id', '!=', $allottee->id)
+                    ->exists();
+
+                if ($exists) {
+                    throw new \InvalidArgumentException("A property can have only one active/current owner at a time.");
+                }
+            }
         });
     }
 
     protected $fillable = [
-        'project_id',
+        'project_id', 'property_id',
         'file_no','membership_no','fg','endorsed_files','loan_mortgage',
         'handed_over','temporary_occupancy','possession_date','booking_transfer_date',
         'gp','block_no','floor','flat_no','bps','cnic','balloting_fcfs','pal',
@@ -32,6 +46,8 @@ class Allottee extends Model
         'maintenance_charges','watch_ward_charges','fine','total_maintenance_charges','city',
         'amount_paid','payment_mode','payment_date','payment_ref',
         'ww_charged','ww_charged_date',
+        'ownership_start_date', 'ownership_end_date', 'transfer_type', 'transfer_ref_no', 'status', 'remarks', 'occupancy_status',
+        'father_spouse_name', 'email'
     ];
 
     protected $casts = [
@@ -51,6 +67,8 @@ class Allottee extends Model
         'covered_area'    => 'integer',
         'ww_charged'      => 'boolean',
         'ww_charged_date' => 'date',
+        'ownership_start_date' => 'date',
+        'ownership_end_date' => 'date',
     ];
 
     public function bills(): HasMany
@@ -141,5 +159,115 @@ class Allottee extends Model
             return trim($parts[0]) . ' & Others';
         }
         return $cnic;
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function recalculateBillingStatuses(): void
+    {
+        // 1. Sum all transaction records to get true amount_paid
+        $totalPaid = (float) $this->transactions()->sum('amount_paid');
+        
+        $this->amount_paid = $totalPaid;
+        $this->save(); // Triggers the saving event which recalculates overdue_months
+
+        // 2. Fetch all bills of the allottee ordered chronologically
+        $bills = $this->bills()->withoutGlobalScopes()->orderBy('bill_month', 'asc')->get();
+
+        foreach ($bills as $bill) {
+            $billPaid = min((float)$bill->total_amount, $totalPaid);
+            
+            $status = 'unpaid';
+            if ($billPaid >= ((float)$bill->total_amount - \App\Models\Bill::ROUNDING_TOLERANCE)) {
+                $status = 'paid';
+            } elseif ($billPaid > 0) {
+                $status = 'partial';
+            }
+
+            $bill->update([
+                'paid_amount' => $billPaid,
+                'status'      => $status,
+                'is_locked'   => $status === 'paid',
+                'locked_at'   => $status === 'paid' ? ($bill->locked_at ?? now()) : null,
+            ]);
+        }
+    }
+    public function property(): BelongsTo
+    {
+        return $this->belongsTo(Property::class);
+    }
+
+    public function tenants(): HasMany
+    {
+        return $this->hasMany(TenantRecord::class);
+    }
+
+    public function activeTenant()
+    {
+        return $this->tenants()->where('is_active', true)->first();
+    }
+
+    public function ownershipHistories(): HasMany
+    {
+        return $this->hasMany(PropertyOwnershipHistory::class, 'allottee_id');
+    }
+
+    public function getBlockNoAttribute($value)
+    {
+        return $this->property ? $this->property->block_no : $value;
+    }
+
+    public function getFlatNoAttribute($value)
+    {
+        return $this->property ? $this->property->flat_no : $value;
+    }
+
+    public function getFloorAttribute($value)
+    {
+        return $this->property ? $this->property->floor : $value;
+    }
+
+    public function getCategoryAttribute($value)
+    {
+        return $this->property ? $this->property->category : $value;
+    }
+
+    public function getCoveredAreaAttribute($value)
+    {
+        return $this->property ? $this->property->covered_area : $value;
+    }
+
+    public function getHasParkingAttribute($value)
+    {
+        return $this->property ? $this->property->has_parking : $value;
+    }
+
+    public function getHasWaterAttribute($value)
+    {
+        return $this->property ? $this->property->has_water : $value;
+    }
+
+    public function getParkingChargesAttribute($value)
+    {
+        return $this->property ? $this->property->parking_charges : $value;
+    }
+
+    public function getWaterChargesAttribute($value)
+    {
+        return $this->property ? $this->property->water_charges : $value;
+    }
+
+    public function getOccupancyStatusAttribute($value)
+    {
+        if ($value === 'owner' || $value === 'owner_occupied') {
+            return 'owner_occupied';
+        }
+        if ($value === 'tenant' || $value === 'tenant_occupied') {
+            return 'tenant_occupied';
+        }
+        return 'owner_occupied';
     }
 }

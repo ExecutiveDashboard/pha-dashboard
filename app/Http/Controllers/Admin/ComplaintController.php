@@ -104,7 +104,7 @@ class ComplaintController extends Controller
 
     public function assign(Request $request, Complaint $complaint)
     {
-        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -150,7 +150,7 @@ class ComplaintController extends Controller
 
     public function updatePriority(Request $request, Complaint $complaint)
     {
-        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -182,7 +182,7 @@ class ComplaintController extends Controller
             if (!$staff || $complaint->assigned_staff_id !== $staff->id) {
                 abort(403, 'Unauthorized.');
             }
-        } elseif (!in_array($user->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        } elseif (!in_array($user->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -217,7 +217,7 @@ class ComplaintController extends Controller
             if (!$staff || $complaint->assigned_staff_id !== $staff->id) {
                 abort(403, 'Unauthorized.');
             }
-        } elseif (!in_array($user->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        } elseif (!in_array($user->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -273,7 +273,7 @@ class ComplaintController extends Controller
 
     public function close(Request $request, Complaint $complaint)
     {
-        if (!in_array(Auth::user()->role, ['super_admin', 'data_entry', 'maintenance_supervisor'])) {
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin', 'data_entry', 'maintenance_supervisor'])) {
             abort(403, 'Unauthorized.');
         }
 
