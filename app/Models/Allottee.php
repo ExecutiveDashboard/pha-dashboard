@@ -255,7 +255,14 @@ class Allottee extends Model
 
     public function getCoveredAreaAttribute($value)
     {
-        return $this->property ? $this->property->covered_area : $value;
+        $catName = strtoupper(trim($this->category));
+        if ($catName === 'B') {
+            return (float) \App\Models\Setting::getValue('area_b', 1496);
+        }
+        if ($catName === 'E') {
+            return (float) \App\Models\Setting::getValue('area_e', 912);
+        }
+        return (float) ($this->property ? $this->property->covered_area : $value);
     }
 
     public function getHasParkingAttribute($value)

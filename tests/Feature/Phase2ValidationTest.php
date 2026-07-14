@@ -105,6 +105,9 @@ class Phase2ValidationTest extends TestCase
             'role' => 'super_admin',
         ]);
 
+        // Set standard area setting to 1000 for Category B during test
+        \App\Models\Setting::setValue('area_b', '1000');
+
         // Create an allottee with an existing fine of 500
         $allottee = Allottee::create([
             'project_id' => $this->project->id,
