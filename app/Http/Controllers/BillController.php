@@ -21,16 +21,26 @@ class BillController extends Controller
         $wwCutoff = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
         $delayPct = (float) Setting::getValue('delay_charge_percent', 10);
         
+        $bankAccNo = Setting::getValue('bank_account_no', 'PHA-0001-0001-001');
+        $bankName = Setting::getValue('bank_name', 'National Bank of Pakistan');
+        $bankBranch = Setting::getValue('bank_branch', 'Islamabad Main Branch');
+
         if ($activeProject) {
             $rate = $activeProject->maintenance_rate;
             $wwAmount = $activeProject->ww_amount;
             $wwCutoff = $activeProject->ww_cutoff_date;
             $delayPct = $activeProject->delay_percent;
+            
+            if ($activeProject->bank_account_no) {
+                $bankAccNo = $activeProject->bank_account_no;
+            }
+            if ($activeProject->bank_name) {
+                $bankName = $activeProject->bank_name;
+            }
+            if ($activeProject->bank_branch) {
+                $bankBranch = $activeProject->bank_branch;
+            }
         }
-
-        $bankAccNo = Setting::getValue('bank_account_no', 'PHA-0001-0001-001');
-        $bankName = Setting::getValue('bank_name', 'National Bank of Pakistan');
-        $bankBranch = Setting::getValue('bank_branch', 'Islamabad Main Branch');
 
         $monthlyRate = $allottee->covered_area * $rate;
 
@@ -298,27 +308,28 @@ class BillController extends Controller
 
         if (strlen($q) >= 3) {
             $searched = true;
-            $allottees = Allottee::where(function($query) use ($q) {
-                $query->where('name', 'like', "%{$q}%")
-                    ->orWhere('cnic', 'like', "%{$q}%")
-                    ->orWhere('file_no', 'like', "%{$q}%")
-                    ->orWhere('membership_no', 'like', "%{$q}%")
-                    ->orWhere('cell', 'like', "%{$q}%")
-                    ->orWhereHas('property', function($pq) use ($q) {
-                        $pq->where('flat_no', 'like', "%{$q}%");
-                    })
-                    ->orWhereHas('tenants', function($tq) use ($q) {
-                        $tq->where('is_active', true)
-                           ->where(function($sub) use ($q) {
-                               $sub->where('tenant_name', 'like', "%{$q}%")
-                                   ->orWhere('tenant_cnic', 'like', "%{$q}%")
-                                   ->orWhere('mobile_no', 'like', "%{$q}%");
-                           });
-                    });
-            })
-            ->orderBy('name')
-            ->limit(30)
-            ->get();
+             $allottees = Allottee::where('status', 'active')
+                ->where(function($query) use ($q) {
+                    $query->where('name', 'like', "%{$q}%")
+                        ->orWhere('cnic', 'like', "%{$q}%")
+                        ->orWhere('file_no', 'like', "%{$q}%")
+                        ->orWhere('membership_no', 'like', "%{$q}%")
+                        ->orWhere('cell', 'like', "%{$q}%")
+                        ->orWhereHas('property', function($pq) use ($q) {
+                            $pq->where('flat_no', 'like', "%{$q}%");
+                        })
+                        ->orWhereHas('tenants', function($tq) use ($q) {
+                            $tq->where('is_active', true)
+                               ->where(function($sub) use ($q) {
+                                   $sub->where('tenant_name', 'like', "%{$q}%")
+                                       ->orWhere('tenant_cnic', 'like', "%{$q}%")
+                                       ->orWhere('mobile_no', 'like', "%{$q}%");
+                               });
+                        });
+                })
+                ->orderBy('name')
+                ->limit(30)
+                ->get();
         }
 
         return view('bills.search', compact('q', 'allottees', 'searched'));

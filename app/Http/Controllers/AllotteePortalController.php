@@ -71,9 +71,15 @@ class AllotteePortalController extends Controller
             ->first();
 
         $hasMonthlyBills = $monthlyBills->isNotEmpty();
+        $activeProject = \App\Models\Project::active();
         $bankAccNo    = Setting::getValue('bank_account_no', 'PHA-001-NBP-001');
         $bankName     = Setting::getValue('bank_name', 'National Bank of Pakistan');
         $bankBranch   = Setting::getValue('bank_branch', 'Islamabad Main Branch');
+        if ($activeProject) {
+            $bankAccNo  = $activeProject->bank_account_no ?: $bankAccNo;
+            $bankName   = $activeProject->bank_name ?: $bankName;
+            $bankBranch = $activeProject->bank_branch ?: $bankBranch;
+        }
 
         $qrSvg = '';
         $qrData = '';
@@ -116,10 +122,17 @@ class AllotteePortalController extends Controller
         $billData  = app(\App\Http\Controllers\BillController::class)->billData($allottee);
         $qrSvg     = $billData['qrSvg'] ?? '';
         $qrData    = $billData['qrData'] ?? '';
-        $bankAccNo = Setting::getValue('bank_account_no', 'PHA-001-NBP-001');
-        $bankName  = Setting::getValue('bank_name', 'National Bank of Pakistan');
-        $bankBranch= Setting::getValue('bank_branch', 'Islamabad Main Branch');
-        $rate      = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
+        $activeProject = \App\Models\Project::active();
+        $bankAccNo    = Setting::getValue('bank_account_no', 'PHA-001-NBP-001');
+        $bankName     = Setting::getValue('bank_name', 'National Bank of Pakistan');
+        $bankBranch   = Setting::getValue('bank_branch', 'Islamabad Main Branch');
+        $rate         = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
+        if ($activeProject) {
+            $bankAccNo  = $activeProject->bank_account_no ?: $bankAccNo;
+            $bankName   = $activeProject->bank_name ?: $bankName;
+            $bankBranch = $activeProject->bank_branch ?: $bankBranch;
+            $rate       = $activeProject->maintenance_rate ?: $rate;
+        }
 
         return view('portal.bill_detail', compact('allottee', 'bill', 'bankAccNo', 'bankName', 'bankBranch', 'rate', 'qrSvg', 'qrData'));
     }
