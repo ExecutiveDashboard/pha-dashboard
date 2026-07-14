@@ -68,6 +68,20 @@ class DashboardSettingsTest extends TestCase
     /** @test */
     public function dashboard_uses_settings_for_category_areas()
     {
+        // Create an allottee in Category E with a different covered area to simulate database discrepancy
+        \App\Models\Allottee::create([
+            'project_id' => 1,
+            'name' => 'Allottee E Test',
+            'bps' => '11',
+            'cnic' => '11111-1111111-2',
+            'cell_no' => '0300-1234568',
+            'category' => 'E',
+            'status' => 'active',
+            'covered_area' => 972, // Database max area is 972
+            'amount_paid' => 0,
+            'total_maintenance_charges' => 100,
+        ]);
+
         // Update to custom setting values
         Setting::where('key', 'area_b')->update(['value' => '1500']);
         Setting::where('key', 'area_e')->update(['value' => '912']);

@@ -65,7 +65,15 @@ class DashboardController extends Controller
         $totalMonthlyBilling = 0;
         foreach ($categoryStatsRaw as $cat) {
             $catName = strtoupper(trim($cat->category));
-            $typicalArea = $cat->typical_area > 0 ? $cat->typical_area : ($catName === 'B' ? $areaB : ($catName === 'E' ? $areaE : 0));
+            
+            if ($catName === 'B') {
+                $typicalArea = $areaB;
+            } elseif ($catName === 'E') {
+                $typicalArea = $areaE;
+            } else {
+                $typicalArea = $cat->typical_area > 0 ? $cat->typical_area : 0;
+            }
+
             $catMonthly = $cat->total_area * $maintenanceRate;
             $totalMonthlyBilling += $catMonthly;
 
