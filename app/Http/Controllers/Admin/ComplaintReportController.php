@@ -110,7 +110,7 @@ class ComplaintReportController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        $query = Complaint::with(['allottee', 'category', 'assignedStaff', 'project']);
+        $query = Complaint::with(['allottee.property', 'category', 'assignedStaff', 'project']);
 
         // Filtering
         if ($request->filled('project_id')) {
@@ -146,7 +146,7 @@ class ComplaintReportController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        $query = Complaint::with(['allottee', 'category', 'assignedStaff', 'project']);
+        $query = Complaint::with(['allottee.property', 'category', 'assignedStaff', 'project']);
 
         // Apply filters
         if ($request->filled('project_id')) {

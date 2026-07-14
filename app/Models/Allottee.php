@@ -215,9 +215,17 @@ class Allottee extends Model
         return $this->hasMany(TenantRecord::class);
     }
 
+    public function activeTenantRelation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TenantRecord::class)->where('is_active', true);
+    }
+
     public function activeTenant()
     {
-        return $this->tenants()->where('is_active', true)->first();
+        if ($this->relationLoaded('activeTenantRelation')) {
+            return $this->activeTenantRelation;
+        }
+        return $this->activeTenantRelation()->first();
     }
 
     public function ownershipHistories(): HasMany

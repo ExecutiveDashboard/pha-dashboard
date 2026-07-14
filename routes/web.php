@@ -55,6 +55,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
     Route::get('/',          [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::post('/admin/health/scan', [DashboardController::class, 'runHealthScan'])->name('admin.health.scan');
 
     // Allottees
     Route::get('/allottees',            [AllotteeController::class, 'index'])->name('allottees.index');
@@ -105,7 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/projects/{project}/bank', [ProjectController::class, 'updateBank'])->name('projects.update-bank');
     
     // ── USER MANAGEMENT ────────────────────────────────────────────
-    Route::resource('/users', \App\Http\Controllers\UserController::class)->except(['create', 'show', 'edit']);
+    Route::resource('/users', \App\Http\Controllers\UserController::class)->except(['create', 'edit']);
 
     // ── COMPLAINT MANAGEMENT ───────────────────────────────────────
     Route::prefix('admin/complaints')->name('admin.complaints.')->group(function () {
@@ -115,7 +116,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports',                [\App\Http\Controllers\Admin\ComplaintReportController::class, 'reports'])->name('reports');
 
         Route::resource('categories',         \App\Http\Controllers\Admin\ComplaintCategoryController::class)->except(['create', 'show', 'edit']);
+        Route::get('categories/{category}', function () {
+            return redirect()->route('admin.complaints.categories.index');
+        });
+
         Route::resource('staff',              \App\Http\Controllers\Admin\MaintenanceStaffController::class)->except(['create', 'show', 'edit']);
+        Route::get('staff/{staff}', function () {
+            return redirect()->route('admin.complaints.staff.index');
+        });
 
         Route::get('/',                       [\App\Http\Controllers\Admin\ComplaintController::class, 'index'])->name('index');
 
@@ -173,58 +181,6 @@ Route::prefix('portal/complaints')->name('portal.complaints.')->group(function (
     Route::post('/{complaint}/feedback', [\App\Http\Controllers\Portal\PortalComplaintController::class, 'feedback'])->name('feedback');
     Route::post('/{complaint}/reopen',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'reopen'])->name('reopen');
     Route::post('/{complaint}/remark',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'addRemark'])->name('remark');
-});
-
-// Temporary Route to Copy Reports, Commit and Push to GitHub
-Route::get('/git-push', function() {
-    // 1. Copy reports from App Data folder into workspace under docs/release/
-    $srcDir = 'C:/Users/nadee/.gemini/antigravity-ide/brain/bb0e8d25-0b7c-4319-964a-99cf252749f3';
-    $destDir = base_path('docs/release');
-    if (!file_exists($destDir)) {
-        @mkdir($destDir, 0777, true);
-    }
-    
-    $files = [
-        'release_evidence_pack.md',
-        'production_hygiene_report.md',
-        'tenant_occupancy_compliance_report.md',
-        'walkthrough.md',
-        'task.md'
-    ];
-    
-    $copied = [];
-    foreach ($files as $file) {
-        $srcPath = "{$srcDir}/{$file}";
-        $destPath = "{$destDir}/{$file}";
-        if (file_exists($srcPath)) {
-            $copied[$file] = @copy($srcPath, $destPath) ? 'SUCCESS' : 'FAILED';
-        } else {
-            $copied[$file] = 'SRC_NOT_FOUND';
-        }
-    }
-
-    // 2. Run Git Commands
-    chdir(base_path());
-    $log = [];
-    
-    // Set Git User configuration
-    $log['git_config_email'] = shell_exec('git config --global user.email "nadeemseventy3@gmail.com" 2>&1');
-    $log['git_config_name']  = shell_exec('git config --global user.name "Nadeem" 2>&1');
-    
-    // Git add
-    $log['git_add'] = shell_exec('git add . 2>&1');
-    
-    // Git commit
-    $commitMsg = "Version 1.0.1 - Completed Tenant Occupancy compliance audit, UAT and production hygiene validation";
-    $log['git_commit'] = shell_exec('git commit -m "' . addslashes($commitMsg) . '" 2>&1');
-    
-    // Git push
-    $log['git_push'] = shell_exec('git push 2>&1');
-
-    return response()->json([
-        'files_copied' => $copied,
-        'git_log' => $log,
-    ]);
 });
 
 

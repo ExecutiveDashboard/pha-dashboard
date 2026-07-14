@@ -32,7 +32,7 @@ class DashboardController extends Controller
             $delayPct        = $activeProject->delay_percent;
         }
 
-        // ── CATEGORY STATS (Dynamic) ───────────────────────────────────
+        // ── CATEGORY STATS (Dynamic with defaults for B and E from Settings) ──
         $categoryStatsRaw = Allottee::select(
             'category', 
             DB::raw('COUNT(*) as count'), 
@@ -40,22 +40,46 @@ class DashboardController extends Controller
             DB::raw('SUM(covered_area) as total_area')
         )->active()->whereNotNull('category')->where('category', '!=', '')->groupBy('category')->orderBy('category')->get();
 
-        $totalAllottees = $categoryStatsRaw->sum('count');
-        $totalMonthlyBilling = 0;
+        $areaB = (float) Setting::getValue('area_b', 1496);
+        $areaE = (float) Setting::getValue('area_e', 912);
 
-        $categoryStats = [];
+        $categoryStats = [
+            'B' => (object) [
+                'name' => 'B',
+                'count' => 0,
+                'typical_area' => $areaB,
+                'monthly_per_unit' => $areaB * $maintenanceRate,
+                'yearly_per_unit' => $areaB * $maintenanceRate * 12,
+                'total_monthly' => 0
+            ],
+            'E' => (object) [
+                'name' => 'E',
+                'count' => 0,
+                'typical_area' => $areaE,
+                'monthly_per_unit' => $areaE * $maintenanceRate,
+                'yearly_per_unit' => $areaE * $maintenanceRate * 12,
+                'total_monthly' => 0
+            ]
+        ];
+
+        $totalMonthlyBilling = 0;
         foreach ($categoryStatsRaw as $cat) {
+            $catName = strtoupper(trim($cat->category));
+            $typicalArea = $cat->typical_area > 0 ? $cat->typical_area : ($catName === 'B' ? $areaB : ($catName === 'E' ? $areaE : 0));
             $catMonthly = $cat->total_area * $maintenanceRate;
             $totalMonthlyBilling += $catMonthly;
-            $categoryStats[] = (object) [
-                'name' => $cat->category,
+
+            $categoryStats[$catName] = (object) [
+                'name' => $catName,
                 'count' => $cat->count,
-                'typical_area' => $cat->typical_area,
-                'monthly_per_unit' => $cat->typical_area * $maintenanceRate,
-                'yearly_per_unit' => $cat->typical_area * $maintenanceRate * 12,
+                'typical_area' => $typicalArea,
+                'monthly_per_unit' => $typicalArea * $maintenanceRate,
+                'yearly_per_unit' => $typicalArea * $maintenanceRate * 12,
                 'total_monthly' => $catMonthly
             ];
         }
+
+        $totalAllottees = Allottee::active()->count();
         
         // ── YEARLY ACTUAL VS FORECAST ─────────────────────────────────
         $forecastYearly = $totalMonthlyBilling * 12;
@@ -118,14 +142,14 @@ class DashboardController extends Controller
 
         $totalPending = (float) Bill::withoutGlobalScopes()
             ->whereIn('id', $latestBillIds)
-            ->get()
-            ->sum(fn($b) => max(0, (float)$b->total_amount - (float)$b->paid_amount));
+            ->sum(DB::raw('CASE WHEN (total_amount - paid_amount) > 0 THEN (total_amount - paid_amount) ELSE 0 END'));
 
         // ── DEFAULTERS ─────────────────────────────────────────────────
         $threshold       = (int) Setting::getValue('defaulter_months_threshold', 3);
         $topCount        = (int) Setting::getValue('defaulter_top_count', 10);
         $totalDefaulters = Allottee::active()->where('overdue_months', '>=', $threshold)->count();
         $defaulters      = Allottee::active()
+                                    ->with('property')
                                     ->where('overdue_months', '>=', $threshold)
                                     ->orderByDesc('total_maintenance_charges')
                                     ->limit($topCount)->get();
@@ -168,7 +192,7 @@ class DashboardController extends Controller
 
 
         // ── SAMPLE ALLOTTEES (bottom table, top 15 by total) ──────────
-        $sampleAllottees = Allottee::active()->orderByDesc('total_maintenance_charges')->limit(15)->get();
+        $sampleAllottees = Allottee::active()->with('property')->orderByDesc('total_maintenance_charges')->limit(15)->get();
 
         // ── BPS + DUE MONTHS + POSSESSION (for charts) ───────────────
         $bpsCounts = [];
@@ -285,6 +309,9 @@ class DashboardController extends Controller
 
         $parkingRate = (float) Setting::getValue('parking_charges_rate', 500);
         $waterRate = (float) Setting::getValue('water_charges_rate', 1000);
+
+        // Convert categoryStats to a sequential array to ensure JSON encoding outputs a Javascript array for ApexCharts JS mapping
+        $categoryStats = array_values($categoryStats);
 
         // Load latest integrity report and last failure details via service
         $integrityService = app(\App\Services\SystemIntegrityService::class);

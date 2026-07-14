@@ -21,7 +21,7 @@ class MonthlyBillController extends Controller
         $bills = Bill::whereHas('allottee', function ($q) {
                 $q->where('category', 'B');
             })
-            ->with('allottee')
+            ->with(['allottee.property'])
             ->where('bill_month', $selectedMonth)
             ->orderBy('status')
             ->paginate(30)
@@ -107,90 +107,89 @@ class MonthlyBillController extends Controller
             $allottees = Allottee::active()->where('category', 'B')->get();
         }
 
-        $generated = 0;
-        $skipped   = 0;
+        \Illuminate\Support\Facades\DB::transaction(function() use ($allottees, $month, $rate, $wwAmt, $delayPct, $activeProject, &$generated, &$skipped) {
+            foreach ($allottees as $allottee) {
+                // Skip if bill already exists for this month
+                if (Bill::where('allottee_id', $allottee->id)->where('bill_month', $month)->exists()) {
+                    $skipped++;
+                    continue;
+                }
 
-        foreach ($allottees as $allottee) {
-            // Skip if bill already exists for this month
-            if (Bill::where('allottee_id', $allottee->id)->where('bill_month', $month)->exists()) {
-                $skipped++;
-                continue;
+                // 1. Roll Forward: Increment due months
+                $allottee->due_months += 1;
+
+                $parkingRate = $allottee->has_parking ? ($allottee->parking_charges > 0 ? $allottee->parking_charges : (float) Setting::getValue('parking_charges_rate', 500)) : 0;
+                $waterRate = $allottee->has_water ? ($allottee->water_charges > 0 ? $allottee->water_charges : (float) Setting::getValue('water_charges_rate', 1000)) : 0;
+                
+                $monthlyBase = ($rate * $allottee->covered_area) + $parkingRate + $waterRate;
+                $maintenance = round($monthlyBase * $allottee->due_months, 2);
+                $allottee->maintenance_charges = $maintenance;
+
+                // W&W: Calculate dynamically for completed months
+                $cutoffSetting = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
+                $wwStartDate = $activeProject && $activeProject->ww_cutoff_date 
+                    ? Carbon::parse($activeProject->ww_cutoff_date) 
+                    : Carbon::parse($cutoffSetting);
+                $wwEndDate = $allottee->possession_date ? clone $allottee->possession_date : Carbon::now();
+                $wwMonths = 0;
+                if ($wwEndDate->gt($wwStartDate)) {
+                    $wwMonths = $wwStartDate->diffInMonths($wwEndDate);
+                }
+                $ww = $wwMonths * $wwAmt;
+                
+                if (!$allottee->ww_charged && $ww > 0) {
+                    $allottee->ww_charged = true;
+                    $allottee->ww_charged_date = $allottee->possession_date ?? now();
+                }
+
+                // Sync allottee.watch_ward_charges to match the generated ww snapshot
+                $allottee->watch_ward_charges = $ww;
+
+                // Calculate Fine dynamically on pending amount
+                $oldFine = $allottee->fine ?? 0;
+                // The pending balance before generating this month's new fine (exclude old fine from compounding)
+                $pendingBeforeFine = max(0, ($maintenance + $ww) - $allottee->amount_paid);
+                
+                // We only fine the ARREARS, not the brand new current month rent.
+                $currentMonthRent = round($monthlyBase, 2);
+                $amountSubjectToFine = max(0, $pendingBeforeFine - $currentMonthRent);
+
+                $newFine = 0;
+                if ($amountSubjectToFine > 0) {
+                    $newFine = round($amountSubjectToFine * ($delayPct / 100), 2);
+                }
+                
+                $fine = $oldFine + $newFine;
+                $allottee->fine = $fine;
+                $allottee->total_maintenance_charges = $maintenance + $ww + $fine;
+
+                // 3. Create the Unified Monthly Bill (Snapshot of Account State)
+                $totalCharges = round($maintenance + $ww + $fine, 2);
+                $amountPaid   = round((float)$allottee->amount_paid, 2);
+                $paidAmount   = min($totalCharges, $amountPaid);
+                $totalDue     = max(0, $totalCharges - $amountPaid);
+                $status       = $totalDue > 1.00 ? ($amountPaid > 0 ? 'partial' : 'unpaid') : 'paid';
+                $psid         = Bill::generatePsid($allottee, $month);
+
+                Bill::create([
+                    'project_id'         => $allottee->project_id,
+                    'allottee_id'        => $allottee->id,
+                    'bill_month'         => $month,
+                    'psid'               => $psid,
+                    'maintenance_amount' => $maintenance,
+                    'ww_amount'          => $ww,
+                    'fine_amount'        => $fine,
+                    'total_amount'       => $totalCharges,
+                    'paid_amount'        => $paidAmount,
+                    'status'             => $status,
+                ]);
+
+                // Save the allottee AFTER the bill is created so overdue_months calculates correctly in saving hook
+                $allottee->save();
+                
+                $generated++;
             }
-
-            // 1. Roll Forward: Increment due months
-            $allottee->due_months += 1;
-
-            $parkingRate = $allottee->has_parking ? ($allottee->parking_charges > 0 ? $allottee->parking_charges : (float) Setting::getValue('parking_charges_rate', 500)) : 0;
-            $waterRate = $allottee->has_water ? ($allottee->water_charges > 0 ? $allottee->water_charges : (float) Setting::getValue('water_charges_rate', 1000)) : 0;
-            
-            $monthlyBase = ($rate * $allottee->covered_area) + $parkingRate + $waterRate;
-            $maintenance = round($monthlyBase * $allottee->due_months, 2);
-            $allottee->maintenance_charges = $maintenance;
-
-            // W&W: Calculate dynamically for completed months
-            $cutoffSetting = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
-            $wwStartDate = $activeProject && $activeProject->ww_cutoff_date 
-                ? Carbon::parse($activeProject->ww_cutoff_date) 
-                : Carbon::parse($cutoffSetting);
-            $wwEndDate = $allottee->possession_date ? clone $allottee->possession_date : Carbon::now();
-            $wwMonths = 0;
-            if ($wwEndDate->gt($wwStartDate)) {
-                $wwMonths = $wwStartDate->diffInMonths($wwEndDate);
-            }
-            $ww = $wwMonths * $wwAmt;
-            
-            if (!$allottee->ww_charged && $ww > 0) {
-                $allottee->ww_charged = true;
-                $allottee->ww_charged_date = $allottee->possession_date ?? now();
-            }
-
-            // Sync allottee.watch_ward_charges to match the generated ww snapshot
-            $allottee->watch_ward_charges = $ww;
-
-            // Calculate Fine dynamically on pending amount
-            $oldFine = $allottee->fine ?? 0;
-            // The pending balance before generating this month's new fine (exclude old fine from compounding)
-            $pendingBeforeFine = max(0, ($maintenance + $ww) - $allottee->amount_paid);
-            
-            // We only fine the ARREARS, not the brand new current month rent.
-            $currentMonthRent = round($monthlyBase, 2);
-            $amountSubjectToFine = max(0, $pendingBeforeFine - $currentMonthRent);
-
-            $newFine = 0;
-            if ($amountSubjectToFine > 0) {
-                $newFine = round($amountSubjectToFine * ($delayPct / 100), 2);
-            }
-            
-            $fine = $oldFine + $newFine;
-            $allottee->fine = $fine;
-            $allottee->total_maintenance_charges = $maintenance + $ww + $fine;
-
-            // 3. Create the Unified Monthly Bill (Snapshot of Account State)
-            $totalCharges = round($maintenance + $ww + $fine, 2);
-            $amountPaid   = round((float)$allottee->amount_paid, 2);
-            $paidAmount   = min($totalCharges, $amountPaid);
-            $totalDue     = max(0, $totalCharges - $amountPaid);
-            $status       = $totalDue > 1.00 ? ($amountPaid > 0 ? 'partial' : 'unpaid') : 'paid';
-            $psid         = Bill::generatePsid($allottee, $month);
-
-            Bill::create([
-                'project_id'         => $allottee->project_id,
-                'allottee_id'        => $allottee->id,
-                'bill_month'         => $month,
-                'psid'               => $psid,
-                'maintenance_amount' => $maintenance,
-                'ww_amount'          => $ww,
-                'fine_amount'        => $fine,
-                'total_amount'       => $totalCharges,
-                'paid_amount'        => $paidAmount,
-                'status'             => $status,
-            ]);
-
-            // Save the allottee AFTER the bill is created so overdue_months calculates correctly in saving hook
-            $allottee->save();
-            
-            $generated++;
-        }
+        });
 
         return redirect()->route('monthly-bills.index', ['month' => $month])
             ->with('success', "Generated {$generated} bills for {$month}. Skipped {$skipped} (already existed).");

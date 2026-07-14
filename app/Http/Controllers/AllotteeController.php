@@ -10,7 +10,7 @@ class AllotteeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Allottee::active();
+        $query = Allottee::active()->with(['property', 'activeTenantRelation']);
 
         if ($request->filled('search')) {
             $s = trim($request->search);

@@ -16,7 +16,7 @@ class ComplaintController extends Controller
     private function getBaseQuery()
     {
         $user = Auth::user();
-        $query = Complaint::with(['allottee', 'category', 'assignedStaff']);
+        $query = Complaint::with(['allottee.property', 'category', 'assignedStaff']);
 
         if ($user->role === 'maintenance_staff') {
             $staff = MaintenanceStaff::where('user_id', $user->id)->first();
