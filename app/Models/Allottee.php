@@ -20,6 +20,22 @@ class Allottee extends Model
         static::saving(function ($allottee) {
             $allottee->overdue_months = $allottee->calculateOverdueMonths();
 
+            // Automatically sync legacy property fields from the property relation to the allottee table
+            if ($allottee->property_id) {
+                $property = \App\Models\Property::find($allottee->property_id);
+                if ($property) {
+                    $allottee->block_no        = $property->block_no;
+                    $allottee->floor           = $property->floor;
+                    $allottee->flat_no         = $property->flat_no;
+                    $allottee->category        = $property->category;
+                    $allottee->covered_area    = $property->covered_area;
+                    $allottee->has_parking     = $property->has_parking;
+                    $allottee->has_water       = $property->has_water;
+                    $allottee->parking_charges = $property->parking_charges;
+                    $allottee->water_charges   = $property->water_charges;
+                }
+            }
+
             // Validate that one property can have only one active/current owner at a time
             if ($allottee->status === 'active' && $allottee->property_id) {
                 $exists = static::withoutGlobalScopes()

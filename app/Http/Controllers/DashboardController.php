@@ -34,12 +34,14 @@ class DashboardController extends Controller
         }
 
         // ── CATEGORY STATS (Dynamic with defaults for B and E from Settings) ──
-        $categoryStatsRaw = Allottee::select(
-            'category', 
-            DB::raw('COUNT(*) as count'), 
-            DB::raw('MAX(covered_area) as typical_area'),
-            DB::raw('SUM(covered_area) as total_area')
-        )->active()->whereNotNull('category')->where('category', '!=', '')->groupBy('category')->orderBy('category')->get();
+        $categoryStatsRaw = Allottee::active()
+            ->join('properties', 'allottees.property_id', '=', 'properties.id')
+            ->select(
+                'properties.category', 
+                DB::raw('COUNT(allottees.id) as count'), 
+                DB::raw('MAX(properties.covered_area) as typical_area'),
+                DB::raw('SUM(properties.covered_area) as total_area')
+            )->whereNotNull('properties.category')->where('properties.category', '!=', '')->groupBy('properties.category')->orderBy('properties.category')->get();
 
         $areaB = (float) Setting::getValue('area_b', 1496);
         $areaE = (float) Setting::getValue('area_e', 912);
@@ -178,10 +180,11 @@ class DashboardController extends Controller
             
             foreach ($categoryStats as $cat) {
                 $count = Allottee::active()
-                    ->where('category', $cat->name)
+                    ->join('properties', 'allottees.property_id', '=', 'properties.id')
+                    ->where('properties.category', $cat->name)
                     ->where(function($q) use ($monthEnd) {
-                        $q->whereNull('possession_date')
-                          ->orWhere('possession_date', '<=', $monthEnd);
+                        $q->whereNull('allottees.possession_date')
+                          ->orWhere('allottees.possession_date', '<=', $monthEnd);
                     })->count();
                 
                 $typicalArea = ($cat->name === 'B') ? $areaB : (($cat->name === 'E') ? $areaE : $cat->typical_area);
@@ -309,20 +312,21 @@ class DashboardController extends Controller
                                 ->get();
 
         // ── BLOCK-WISE ANALYTICS ──────────────────────────────────────
-        $blockData = Allottee::select(
-            'category',
-            'block_no',
-            DB::raw('COUNT(*) as total'),
-            DB::raw("SUM(CASE WHEN temporary_occupancy IS NOT NULL AND temporary_occupancy != '' AND temporary_occupancy != '0' THEN 1 ELSE 0 END) as temp_occ"),
-            DB::raw("SUM(CASE WHEN handed_over IS NOT NULL AND handed_over != '' AND handed_over != '0' THEN 1 ELSE 0 END) as handed_over"),
-            DB::raw("SUM(CASE WHEN transfer IS NOT NULL AND transfer != '' AND transfer != '0' THEN 1 ELSE 0 END) as transferred"),
-            DB::raw('SUM(covered_area) * ' . $maintenanceRate . ' as monthly_billing')
+        $blockData = Allottee::join('properties', 'allottees.property_id', '=', 'properties.id')
+        ->select(
+            'properties.category as category',
+            'properties.block_no as block_no',
+            DB::raw('COUNT(allottees.id) as total'),
+            DB::raw("SUM(CASE WHEN allottees.temporary_occupancy IS NOT NULL AND allottees.temporary_occupancy != '' AND allottees.temporary_occupancy != '0' THEN 1 ELSE 0 END) as temp_occ"),
+            DB::raw("SUM(CASE WHEN allottees.handed_over IS NOT NULL AND allottees.handed_over != '' AND allottees.handed_over != '0' THEN 1 ELSE 0 END) as handed_over"),
+            DB::raw("SUM(CASE WHEN allottees.transfer IS NOT NULL AND allottees.transfer != '' AND allottees.transfer != '0' THEN 1 ELSE 0 END) as transferred"),
+            DB::raw('SUM(properties.covered_area) * ' . $maintenanceRate . ' as monthly_billing')
         )
         ->active()
-        ->whereNotNull('block_no')
-        ->groupBy('category', 'block_no')
-        ->orderBy('category')
-        ->orderByRaw('CAST(block_no AS INTEGER) ASC')
+        ->whereNotNull('properties.block_no')
+        ->groupBy('properties.category', 'properties.block_no')
+        ->orderBy('properties.category')
+        ->orderByRaw('CAST(properties.block_no AS INTEGER) ASC')
         ->get();
 
         foreach ($blockData as $block) {

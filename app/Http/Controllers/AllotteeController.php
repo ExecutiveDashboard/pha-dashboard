@@ -21,7 +21,8 @@ class AllotteeController extends Controller
                   ->orWhere('membership_no', 'like', "%$s%")
                   ->orWhere('cell', 'like', "%$s%")
                   ->orWhereHas('property', function($pq) use ($s) {
-                      $pq->where('flat_no', 'like', "%$s%");
+                      $pq->where('flat_no', 'like', "%$s%")
+                         ->orWhere('block_no', 'like', "%$s%");
                   })
                   ->orWhereHas('tenants', function($tq) use ($s) {
                       $tq->where('is_active', true)
@@ -33,7 +34,11 @@ class AllotteeController extends Controller
                   });
             });
         }
-        if ($request->filled('category')) $query->where('category', $request->category);
+        if ($request->filled('category')) {
+            $query->whereHas('property', function ($pq) use ($request) {
+                $pq->where('category', $request->category);
+            });
+        }
         if ($request->filled('city'))     $query->where('city', $request->city);
         if ($request->filled('bps'))      $query->where('bps', $request->bps);
         if ($request->filled('defaulter') && $request->defaulter === '1') {
@@ -225,6 +230,7 @@ class AllotteeController extends Controller
             ]);
 
             // 2. Create new active owner record
+            $property = \App\Models\Property::find($allottee->property_id);
             $newAllottee = Allottee::create([
                 'project_id'                 => $allottee->project_id,
                 'property_id'                => $allottee->property_id,
@@ -245,6 +251,16 @@ class AllotteeController extends Controller
                 'watch_ward_charges'         => 0.00,
                 'fine'                       => 0.00,
                 'city'                       => $allottee->city,
+                // Backward compatibility raw coordinates from property record:
+                'block_no'                   => $property ? $property->block_no : $allottee->block_no,
+                'floor'                      => $property ? $property->floor : $allottee->floor,
+                'flat_no'                    => $property ? $property->flat_no : $allottee->flat_no,
+                'category'                   => $property ? $property->category : $allottee->category,
+                'covered_area'               => $property ? $property->covered_area : $allottee->covered_area,
+                'has_parking'                => $property ? $property->has_parking : $allottee->has_parking,
+                'has_water'                  => $property ? $property->has_water : $allottee->has_water,
+                'parking_charges'            => $property ? $property->parking_charges : $allottee->parking_charges,
+                'water_charges'              => $property ? $property->water_charges : $allottee->water_charges,
             ]);
 
             // 3. Process balance transfers if enabled
@@ -335,7 +351,10 @@ class AllotteeController extends Controller
             // Run integrity validation check post-transfer
             $integrityService = app(\App\Services\SystemIntegrityService::class);
             $report = $integrityService->run();
-            if ($report['overall_status'] === 'CRITICAL') {
+            $hasCriticalFailure = collect($report['results'])->contains(function ($check) {
+                return $check['status'] === 'FAIL' && $check['severity'] === 'CRITICAL';
+            });
+            if ($hasCriticalFailure) {
                 throw new \RuntimeException("Ownership transfer aborted due to critical database integrity check failures.");
             }
 

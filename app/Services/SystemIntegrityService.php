@@ -171,7 +171,11 @@ class SystemIntegrityService
                 SELECT project_id, category, COUNT(*) as prop_count FROM properties GROUP BY project_id, category
             ) p
             LEFT JOIN (
-                SELECT project_id, category, COUNT(*) as allottee_count FROM allottees WHERE status = 'active' GROUP BY project_id, category
+                SELECT prop.project_id, prop.category, COUNT(a.id) as allottee_count 
+                FROM allottees a
+                INNER JOIN properties prop ON a.property_id = prop.id
+                WHERE a.status = 'active' 
+                GROUP BY prop.project_id, prop.category
             ) a ON p.project_id = a.project_id AND (p.category = a.category OR (p.category IS NULL AND a.category IS NULL))
             WHERE p.project_id NOT IN ({$legacyPlaceholder}) AND p.prop_count != COALESCE(a.allottee_count, 0)
         ");
@@ -254,8 +258,18 @@ class SystemIntegrityService
         $logCheck('Complaint Integrity', 'Complaints Referencing Invalid Owner/Property', 'MEDIUM', $invalidComplaintCount > 0 ? 'FAIL' : 'PASS', 0, $invalidComplaintCount, $invalidComplaintCount, $invalidComplaintCount > 0 ? 'Map complaint tickets to valid owners and properties.' : '');
 
         // DASHBOARD INTEGRITY (Weight: 5)
-        $actualB = DB::table('allottees')->where('project_id', 1)->where('category', 'B')->where('status', 'active')->count();
-        $actualE = DB::table('allottees')->where('project_id', 1)->where('category', 'E')->where('status', 'active')->count();
+        $actualB = DB::table('allottees')
+            ->join('properties', 'allottees.property_id', '=', 'properties.id')
+            ->where('allottees.project_id', 1)
+            ->where('properties.category', 'B')
+            ->where('allottees.status', 'active')
+            ->count();
+        $actualE = DB::table('allottees')
+            ->join('properties', 'allottees.property_id', '=', 'properties.id')
+            ->where('allottees.project_id', 1)
+            ->where('properties.category', 'E')
+            ->where('allottees.status', 'active')
+            ->count();
         $actualTotal = DB::table('allottees')->where('project_id', 1)->where('status', 'active')->count();
 
         $logCheck('Dashboard Integrity', 'Project 1 Category B Active Count', 'HIGH', $actualB != 672 ? 'FAIL' : 'PASS', 672, $actualB, abs(672 - $actualB), $actualB != 672 ? 'Execute properties/allottees realignment sync.' : '');
@@ -265,16 +279,18 @@ class SystemIntegrityService
         // 7.4 Category B Billing Accounts Match
         $latestBMonth = DB::table('bills')
             ->join('allottees', 'bills.allottee_id', '=', 'allottees.id')
+            ->join('properties', 'allottees.property_id', '=', 'properties.id')
             ->where('allottees.project_id', 1)
-            ->where('allottees.category', 'B')
+            ->where('properties.category', 'B')
             ->max('bills.bill_month');
             
         $billCountB = 0;
         if ($latestBMonth) {
             $billCountB = DB::table('bills')
                 ->join('allottees', 'bills.allottee_id', '=', 'allottees.id')
+                ->join('properties', 'allottees.property_id', '=', 'properties.id')
                 ->where('allottees.project_id', 1)
-                ->where('allottees.category', 'B')
+                ->where('properties.category', 'B')
                 ->where('bills.bill_month', $latestBMonth)
                 ->count();
         }
@@ -283,16 +299,18 @@ class SystemIntegrityService
         // 7.5 Category E Billing Accounts Match
         $latestEMonth = DB::table('bills')
             ->join('allottees', 'bills.allottee_id', '=', 'allottees.id')
+            ->join('properties', 'allottees.property_id', '=', 'properties.id')
             ->where('allottees.project_id', 1)
-            ->where('allottees.category', 'E')
+            ->where('properties.category', 'E')
             ->max('bills.bill_month');
             
         $billCountE = 0;
         if ($latestEMonth) {
             $billCountE = DB::table('bills')
                 ->join('allottees', 'bills.allottee_id', '=', 'allottees.id')
+                ->join('properties', 'allottees.property_id', '=', 'properties.id')
                 ->where('allottees.project_id', 1)
-                ->where('allottees.category', 'E')
+                ->where('properties.category', 'E')
                 ->where('bills.bill_month', $latestEMonth)
                 ->count();
         }
@@ -304,7 +322,11 @@ class SystemIntegrityService
                 SELECT project_id, block_no, category, COUNT(*) as prop_count FROM properties GROUP BY project_id, block_no, category
             ) p
             LEFT JOIN (
-                SELECT project_id, block_no, category, COUNT(*) as allottee_count FROM allottees WHERE status = 'active' GROUP BY project_id, block_no, category
+                SELECT prop.project_id, prop.block_no, prop.category, COUNT(a.id) as allottee_count 
+                FROM allottees a
+                INNER JOIN properties prop ON a.property_id = prop.id
+                WHERE a.status = 'active' 
+                GROUP BY prop.project_id, prop.block_no, prop.category
             ) a ON p.project_id = a.project_id AND p.block_no = a.block_no AND (p.category = a.category OR (p.category IS NULL AND a.category IS NULL))
             WHERE p.project_id NOT IN ({$legacyPlaceholder}) AND p.prop_count != COALESCE(a.allottee_count, 0)
         ");

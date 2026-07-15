@@ -43,3 +43,14 @@ lively_setup_x86_full_v2210.exe
 /scratch
 /*backup*.sqlite
 database/*backup*.sqlite
+
+# Temporary UAT/test artifacts
+*.bak
+*_debug.json
+*report.json
+phpunit_output.txt
+
+# Exclude SQLite databases
+/database/*.sqlite
+/database/*.sqlite.bak
+*.sqlite

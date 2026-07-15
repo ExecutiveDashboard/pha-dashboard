@@ -12,7 +12,8 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $allottees = Allottee::active()
-            ->select('id','name','cell','cnic','block_no','flat_no','category','due_months','overdue_months')
+            ->with('property')
+            ->select('id','name','cell','cnic','property_id','block_no','flat_no','category','due_months','overdue_months')
             ->orderBy('name')
             ->get();
 

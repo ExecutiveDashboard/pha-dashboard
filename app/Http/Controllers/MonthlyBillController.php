@@ -18,7 +18,7 @@ class MonthlyBillController extends Controller
         $project = Project::active();
 
         // Bills already generated for this month (Category B only)
-        $bills = Bill::whereHas('allottee', function ($q) {
+        $bills = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'B');
             })
             ->with(['allottee.property'])
@@ -27,11 +27,11 @@ class MonthlyBillController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $billCount   = Bill::whereHas('allottee', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->count();
-        $paidCount   = Bill::whereHas('allottee', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->whereIn('status', ['paid', 'settled'])->count();
-        $unpaidCount = Bill::whereHas('allottee', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->whereIn('status', ['unpaid','partial'])->count();
-        $totalAmount = Bill::whereHas('allottee', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->sum('total_amount');
-        $paidAmount  = Bill::whereHas('allottee', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->sum('paid_amount');
+        $billCount   = Bill::whereHas('allottee.property', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->count();
+        $paidCount   = Bill::whereHas('allottee.property', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->whereIn('status', ['paid', 'settled'])->count();
+        $unpaidCount = Bill::whereHas('allottee.property', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->whereIn('status', ['unpaid','partial'])->count();
+        $totalAmount = Bill::whereHas('allottee.property', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->sum('total_amount');
+        $paidAmount  = Bill::whereHas('allottee.property', function ($q) { $q->where('category', 'B'); })->where('bill_month', $selectedMonth)->sum('paid_amount');
 
         return view('bills.monthly', compact(
             'selectedMonth', 'bills', 'project',
@@ -102,10 +102,14 @@ class MonthlyBillController extends Controller
         // Project Scope Restriction: Enforce active project ID explicitly
         if ($activeProject) {
             $allottees = Allottee::active()->where('project_id', $activeProject->id)
-                ->where('category', 'B')
+                ->whereHas('property', function ($q) {
+                    $q->where('category', 'B');
+                })
                 ->get();
         } else {
-            $allottees = Allottee::active()->where('category', 'B')->get();
+            $allottees = Allottee::active()->whereHas('property', function ($q) {
+                $q->where('category', 'B');
+            })->get();
         }
 
         \Illuminate\Support\Facades\DB::transaction(function() use ($allottees, $month, $rate, $wwAmt, $delayPct, $activeProject, &$generated, &$skipped) {

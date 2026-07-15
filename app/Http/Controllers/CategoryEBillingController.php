@@ -18,7 +18,7 @@ class CategoryEBillingController extends Controller
         $project = Project::active();
 
         // Bills already generated for Category E for this month
-        $bills = Bill::whereHas('allottee', function ($q) {
+        $bills = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
             })
             ->with(['allottee.property'])
@@ -27,23 +27,23 @@ class CategoryEBillingController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $billCount = Bill::whereHas('allottee', function ($q) {
+        $billCount = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
             })->where('bill_month', $selectedMonth)->count();
 
-        $paidCount = Bill::whereHas('allottee', function ($q) {
+        $paidCount = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
             })->where('bill_month', $selectedMonth)->whereIn('status', ['paid', 'settled'])->count();
 
-        $unpaidCount = Bill::whereHas('allottee', function ($q) {
+        $unpaidCount = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
             })->where('bill_month', $selectedMonth)->whereIn('status', ['unpaid','partial'])->count();
 
-        $totalAmount = Bill::whereHas('allottee', function ($q) {
+        $totalAmount = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
             })->where('bill_month', $selectedMonth)->sum('total_amount');
 
-        $paidAmount = Bill::whereHas('allottee', function ($q) {
+        $paidAmount = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
             })->where('bill_month', $selectedMonth)->sum('paid_amount');
 
@@ -116,10 +116,14 @@ class CategoryEBillingController extends Controller
         // Project Scope Restriction: Enforce active project ID explicitly
         if ($activeProject) {
             $allottees = Allottee::active()->where('project_id', $activeProject->id)
-                ->where('category', 'E')
+                ->whereHas('property', function ($q) {
+                    $q->where('category', 'E');
+                })
                 ->get();
         } else {
-            $allottees = Allottee::active()->where('category', 'E')->get();
+            $allottees = Allottee::active()->whereHas('property', function ($q) {
+                $q->where('category', 'E');
+            })->get();
         }
 
         \Illuminate\Support\Facades\DB::transaction(function() use ($allottees, $month, $rate, $wwAmt, $delayPct, $activeProject, &$generated, &$skipped) {
