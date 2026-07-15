@@ -19,6 +19,7 @@ class DashboardController extends Controller
 
 
         // ── BILLING RATES (from settings) ──────────────────────────────
+        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
         $maintenanceRate = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
         $wwAmount        = (float) Setting::getValue('watch_ward_amount', 10000);
         $wwCutoff        = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
@@ -26,7 +27,7 @@ class DashboardController extends Controller
         
         $activeProject = \App\Models\Project::active();
         if ($activeProject) {
-            $maintenanceRate = $activeProject->maintenance_rate;
+            // Project rate override removed to keep Settings as the single source of truth
             $wwAmount        = $activeProject->ww_amount;
             $wwCutoff        = $activeProject->ww_cutoff_date;
             $delayPct        = $activeProject->delay_percent;

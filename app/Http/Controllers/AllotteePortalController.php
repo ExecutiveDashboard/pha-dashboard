@@ -126,12 +126,13 @@ class AllotteePortalController extends Controller
         $bankAccNo    = Setting::getValue('bank_account_no', 'PHA-001-NBP-001');
         $bankName     = Setting::getValue('bank_name', 'National Bank of Pakistan');
         $bankBranch   = Setting::getValue('bank_branch', 'Islamabad Main Branch');
+        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
         $rate         = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
         if ($activeProject) {
             $bankAccNo  = $activeProject->bank_account_no ?: $bankAccNo;
             $bankName   = $activeProject->bank_name ?: $bankName;
             $bankBranch = $activeProject->bank_branch ?: $bankBranch;
-            $rate       = $activeProject->maintenance_rate ?: $rate;
+            // Project rate override removed to keep Settings as the single source of truth
         }
 
         return view('portal.bill_detail', compact('allottee', 'bill', 'bankAccNo', 'bankName', 'bankBranch', 'rate', 'qrSvg', 'qrData'));

@@ -101,13 +101,14 @@ class CategoryEBillingController extends Controller
             }
         }
 
+        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
         $rate     = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
         $wwAmt    = (float) Setting::getValue('watch_ward_amount', 10000);
         $delayPct = (float) Setting::getValue('delay_charge_percent', 10);
 
         $activeProject = \App\Models\Project::active();
         if ($activeProject) {
-            $rate = $activeProject->maintenance_rate;
+            // Project rate override removed to keep Settings as the single source of truth
             $wwAmt = $activeProject->ww_amount;
             $delayPct = $activeProject->delay_percent;
         }

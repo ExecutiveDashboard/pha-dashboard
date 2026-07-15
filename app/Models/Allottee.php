@@ -104,11 +104,8 @@ class Allottee extends Model
         $overdueMonthsCount = 0;
         $previousMaint = 0;
 
-        $rate = 3.07;
-        $activeProject = \App\Models\Project::withoutGlobalScopes()->find($this->project_id);
-        if ($activeProject) {
-            $rate = $activeProject->maintenance_rate;
-        }
+        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
+        $rate = (float) \App\Models\Setting::getValue('maintenance_rate_per_sqft', 3.07);
         $parkingRate = $this->has_parking ? ($this->parking_charges > 0 ? $this->parking_charges : (float) \App\Models\Setting::getValue('parking_charges_rate', 500)) : 0;
         $waterRate = $this->has_water ? ($this->water_charges > 0 ? $this->water_charges : (float) \App\Models\Setting::getValue('water_charges_rate', 1000)) : 0;
         $monthlyBase = ($rate * $this->covered_area) + $parkingRate + $waterRate;
