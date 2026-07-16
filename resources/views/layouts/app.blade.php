@@ -344,7 +344,7 @@
                 </button>
                 <ul class="dropdown-menu w-100 shadow" style="font-size: 12px; border:none; border-radius: 10px;">
                     <li class="dropdown-header text-muted" style="font-size: 10px;">SWITCH PROJECT</li>
-                    @foreach(\App\Models\Project::where('is_enabled', true)->get() as $proj)
+                    @foreach(\App\Models\Project::enabled() as $proj)
                         <li>
                             <form action="{{ route('projects.switch') }}" method="POST">
                                 @csrf
@@ -483,7 +483,7 @@
             </div>
             <div class="d-flex align-items-center gap-3">
                 @php
-                    $projects = \App\Models\Project::where('is_enabled', true)->get();
+                    $projects = \App\Models\Project::enabled();
                     $activeProject = \App\Models\Project::active();
                 @endphp
                 <form action="{{ route('projects.switch') }}" method="POST" class="d-flex align-items-center bg-white border rounded px-2 py-1 shadow-sm" style="min-width:200px;">

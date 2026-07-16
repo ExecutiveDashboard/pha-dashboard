@@ -169,9 +169,16 @@ class DashboardController extends Controller
         $trendData = [];
         $endDateSetting = Setting::getValue('current_billing_month', '2026-07');
         $endDate = Carbon::createFromFormat('Y-m', $endDateSetting)->endOfMonth();
+
+        // Single query to fetch all required fields for active allottees for the current project
+        $activeAllotteesForTrend = Allottee::active()
+            ->join('properties', 'allottees.property_id', '=', 'properties.id')
+            ->select('properties.category', 'allottees.possession_date')
+            ->get();
+
         for ($i = 5; $i >= 0; $i--) {
             $month    = $endDate->copy()->subMonths($i);
-            $monthEnd = $month->copy()->endOfMonth()->format('Y-m-d');
+            $monthEnd = $month->copy()->endOfMonth();
 
             $monthData = [
                 'label' => $month->format('M-y'),
@@ -179,13 +186,12 @@ class DashboardController extends Controller
             ];
             
             foreach ($categoryStats as $cat) {
-                $count = Allottee::active()
-                    ->join('properties', 'allottees.property_id', '=', 'properties.id')
-                    ->where('properties.category', $cat->name)
-                    ->where(function($q) use ($monthEnd) {
-                        $q->whereNull('allottees.possession_date')
-                          ->orWhere('allottees.possession_date', '<=', $monthEnd);
-                    })->count();
+                $count = $activeAllotteesForTrend->filter(function($allottee) use ($cat, $monthEnd) {
+                    if (strtoupper(trim($allottee->category ?? '')) !== strtoupper(trim($cat->name))) {
+                        return false;
+                    }
+                    return $allottee->possession_date === null || $allottee->possession_date->lte($monthEnd);
+                })->count();
                 
                 $typicalArea = ($cat->name === 'B') ? $areaB : (($cat->name === 'E') ? $areaE : $cat->typical_area);
                 $totalForCat = $count * $typicalArea * $maintenanceRate;
@@ -197,27 +203,42 @@ class DashboardController extends Controller
         }
 
         // ── CITY-WISE ─────────────────────────────────────────────────
-        $cityGroups = Allottee::active()->get()->groupBy('city');
-        $cityData = [];
-        foreach ($cityGroups as $cityName => $allotteesInCity) {
-            $cityName = $cityName ?: 'Unknown';
-            $monthlyBilling = 0;
+        $cityDataRaw = Allottee::active()
+            ->leftJoin('properties', 'allottees.property_id', '=', 'properties.id')
+            ->select(
+                'allottees.city',
+                DB::raw("COUNT(allottees.id) as count"),
+                DB::raw("SUM(
+                    CASE 
+                        WHEN UPPER(TRIM(COALESCE(properties.category, allottees.category))) = 'B' THEN {$areaB}
+                        WHEN UPPER(TRIM(COALESCE(properties.category, allottees.category))) = 'E' THEN {$areaE}
+                        ELSE CAST(COALESCE(properties.covered_area, allottees.covered_area, 0) AS NUMERIC)
+                    END
+                ) as total_covered_area")
+            )
+            ->groupBy('allottees.city')
+            ->get();
+
+        $cityDataNormalized = [];
+        foreach ($cityDataRaw as $row) {
+            $cityName = trim($row->city ?? '');
+            $cityName = $cityName !== '' ? $cityName : 'Unknown';
             
-            foreach ($allotteesInCity as $allottee) {
-                $catName = strtoupper(trim($allottee->category));
-                $typicalArea = ($catName === 'B') ? $areaB : (($catName === 'E') ? $areaE : $allottee->covered_area);
-                $monthlyBilling += $typicalArea * $maintenanceRate;
+            if (!isset($cityDataNormalized[$cityName])) {
+                $cityDataNormalized[$cityName] = (object) [
+                    'city' => $cityName,
+                    'count' => 0,
+                    'monthly_billing' => 0.0,
+                    'yearly_billing' => 0.0
+                ];
             }
-            $yearlyBilling = $monthlyBilling * 12;
             
-            $cityData[] = (object) [
-                'city' => $cityName,
-                'count' => $allotteesInCity->count(),
-                'monthly_billing' => $monthlyBilling,
-                'yearly_billing' => $yearlyBilling
-            ];
+            $monthlyBilling = (float) $row->total_covered_area * $maintenanceRate;
+            $cityDataNormalized[$cityName]->count += (int) $row->count;
+            $cityDataNormalized[$cityName]->monthly_billing += $monthlyBilling;
+            $cityDataNormalized[$cityName]->yearly_billing += ($monthlyBilling * 12);
         }
-        $cityData = collect($cityData)->sortByDesc('count')->values();
+        $cityData = collect(array_values($cityDataNormalized))->sortByDesc('count')->values();
 
 
 

@@ -27,25 +27,24 @@ class CategoryEBillingController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $billCount = Bill::whereHas('allottee.property', function ($q) {
+        $aggregates = Bill::whereHas('allottee.property', function ($q) {
                 $q->where('category', 'E');
-            })->where('bill_month', $selectedMonth)->count();
+            })
+            ->where('bill_month', $selectedMonth)
+            ->selectRaw("
+                COUNT(*) as bill_count,
+                SUM(CASE WHEN status IN ('paid', 'settled') THEN 1 ELSE 0 END) as paid_count,
+                SUM(CASE WHEN status IN ('unpaid', 'partial') THEN 1 ELSE 0 END) as unpaid_count,
+                SUM(total_amount) as total_amount,
+                SUM(paid_amount) as paid_amount
+            ")
+            ->first();
 
-        $paidCount = Bill::whereHas('allottee.property', function ($q) {
-                $q->where('category', 'E');
-            })->where('bill_month', $selectedMonth)->whereIn('status', ['paid', 'settled'])->count();
-
-        $unpaidCount = Bill::whereHas('allottee.property', function ($q) {
-                $q->where('category', 'E');
-            })->where('bill_month', $selectedMonth)->whereIn('status', ['unpaid','partial'])->count();
-
-        $totalAmount = Bill::whereHas('allottee.property', function ($q) {
-                $q->where('category', 'E');
-            })->where('bill_month', $selectedMonth)->sum('total_amount');
-
-        $paidAmount = Bill::whereHas('allottee.property', function ($q) {
-                $q->where('category', 'E');
-            })->where('bill_month', $selectedMonth)->sum('paid_amount');
+        $billCount   = (int) ($aggregates->bill_count ?? 0);
+        $paidCount   = (int) ($aggregates->paid_count ?? 0);
+        $unpaidCount = (int) ($aggregates->unpaid_count ?? 0);
+        $totalAmount = (float) ($aggregates->total_amount ?? 0);
+        $paidAmount  = (float) ($aggregates->paid_amount ?? 0);
 
         return view('bills.monthly_e', compact(
             'selectedMonth', 'bills', 'project',

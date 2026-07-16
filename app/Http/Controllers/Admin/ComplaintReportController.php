@@ -31,13 +31,12 @@ class ComplaintReportController extends Controller
             'reopened' => Complaint::where('status', 'reopened')->count(),
         ];
 
-        // Average Resolution Time (in hours)
-        $resolved = Complaint::whereNotNull('resolved_at')->get();
-        $totalHours = 0;
-        foreach ($resolved as $c) {
-            $totalHours += $c->created_at->diffInHours($c->resolved_at);
-        }
-        $avgHours = $resolved->count() > 0 ? round($totalHours / $resolved->count(), 1) : 0;
+        // Average Resolution Time (in hours) - optimized database-level calculation
+        $avgHours = Complaint::whereNotNull('resolved_at')
+            ->selectRaw('AVG((strftime("%s", resolved_at) - strftime("%s", created_at)) / 3600.0) as avg_hours')
+            ->first()
+            ->avg_hours ?? 0.0;
+        $avgHours = round((float) $avgHours, 1);
         
         $avgResolutionTime = '—';
         if ($avgHours > 0) {
