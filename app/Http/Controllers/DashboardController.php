@@ -19,19 +19,13 @@ class DashboardController extends Controller
 
 
         // ── BILLING RATES (from settings) ──────────────────────────────
-        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
+        // NOTE: Settings & Criteria is the single authoritative source of truth for billing criteria.
         $maintenanceRate = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
         $wwAmount        = (float) Setting::getValue('watch_ward_amount', 10000);
-        $wwCutoff        = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
+        $wwCutoff        = Setting::getValue('watch_ward_cutoff_date', '2023-07-31');
         $delayPct        = (float) Setting::getValue('delay_charge_percent', 10);
         
         $activeProject = \App\Models\Project::active();
-        if ($activeProject) {
-            // Project rate override removed to keep Settings as the single source of truth
-            $wwAmount        = $activeProject->ww_amount;
-            $wwCutoff        = $activeProject->ww_cutoff_date;
-            $delayPct        = $activeProject->delay_percent;
-        }
 
         // ── CATEGORY STATS (Dynamic with defaults for B and E from Settings) ──
         $categoryStatsRaw = Allottee::active()
@@ -104,13 +98,11 @@ class DashboardController extends Controller
         $wwAfterCount = 0;
         $wwNullCount = 0;
         
-        $wwStartDate = Carbon::create(2023, 7, 1);
-        $now = Carbon::now();
+        $wwCutoffDate = Carbon::parse($wwCutoff);
 
         foreach ($allAllottees as $a) {
-            $endDate = $a->possession_date ? clone $a->possession_date : $now;
             if ($a->possession_date) {
-                if ($a->possession_date->lt($wwStartDate)) {
+                if ($a->possession_date->lt($wwCutoffDate)) {  // Before cutoff (strictly): no W&W charge
                     $wwBeforeCount++;
                 } else {
                     $wwAfterCount++;
@@ -118,13 +110,8 @@ class DashboardController extends Controller
             } else {
                 $wwNullCount++;
             }
-            
-            $months = 0;
-            if ($endDate->gt($wwStartDate)) {
-                $months = $wwStartDate->diffInMonths($endDate);
-            }
-            $totalWWRecoverable += ($months * $wwAmount);
         }
+        $totalWWRecoverable = ($wwAfterCount + $wwNullCount) * $wwAmount;
         
         $wwBeforeAmount = 0;
         $wwAfterAmount = 0; // We will omit exact splits for dashboard simplification

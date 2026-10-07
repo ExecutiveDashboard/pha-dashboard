@@ -57,6 +57,16 @@ class MonthlyBillController extends Controller
     {
         $request->validate(['month' => 'required|date_format:Y-m']);
         $month = $request->month;
+        $requestedDate = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $currentCalDate = Carbon::now()->startOfMonth();
+
+        if ($requestedDate->gt($currentCalDate)) {
+            $userIdentifier = auth()->check() ? 'User ID: ' . auth()->id() : 'Guest';
+            $ipAddress = $request->ip();
+            \Illuminate\Support\Facades\Log::warning("Future month billing blocked: Attempted by {$userIdentifier} from IP {$ipAddress} for month {$month} at " . now()->toDateTimeString() . " because future month billing is not allowed.");
+
+            return back()->with('error', "Future month billing is not allowed.");
+        }
 
         // Run system integrity check safety audit via service (only block on CRITICAL health status)
         $integrityService = app(\App\Services\SystemIntegrityService::class);
@@ -100,17 +110,13 @@ class MonthlyBillController extends Controller
             }
         }
 
-        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
-        $rate     = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
-        $wwAmt    = (float) Setting::getValue('watch_ward_amount', 10000);
-        $delayPct = (float) Setting::getValue('delay_charge_percent', 10);
+        // NOTE: Settings & Criteria is the single authoritative source of truth for billing criteria.
+        $rate       = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
+        $wwAmt      = (float) Setting::getValue('watch_ward_amount', 10000);
+        $delayPct   = (float) Setting::getValue('delay_charge_percent', 10);
+        $cutoffDate = Carbon::parse(Setting::getValue('watch_ward_cutoff_date', '2023-07-31'));
 
         $activeProject = \App\Models\Project::active();
-        if ($activeProject) {
-            // Project rate override removed to keep Settings as the single source of truth
-            $wwAmt = $activeProject->ww_amount;
-            $delayPct = $activeProject->delay_percent;
-        }
 
         // Project Scope Restriction: Enforce active project ID explicitly
         if ($activeProject) {
@@ -125,7 +131,7 @@ class MonthlyBillController extends Controller
             })->get();
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function() use ($allottees, $month, $rate, $wwAmt, $delayPct, $activeProject, &$generated, &$skipped) {
+        \Illuminate\Support\Facades\DB::transaction(function() use ($allottees, $month, $rate, $wwAmt, $delayPct, $cutoffDate, $activeProject, &$generated, &$skipped) {
             foreach ($allottees as $allottee) {
                 // Skip if bill already exists for this month
                 if (Bill::where('allottee_id', $allottee->id)->where('bill_month', $month)->exists()) {
@@ -143,17 +149,13 @@ class MonthlyBillController extends Controller
                 $maintenance = round($monthlyBase * $allottee->due_months, 2);
                 $allottee->maintenance_charges = $maintenance;
 
-                // W&W: Calculate dynamically for completed months
-                $cutoffSetting = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
-                $wwStartDate = $activeProject && $activeProject->ww_cutoff_date 
-                    ? Carbon::parse($activeProject->ww_cutoff_date) 
-                    : Carbon::parse($cutoffSetting);
-                $wwEndDate = $allottee->possession_date ? clone $allottee->possession_date : Carbon::now();
-                $wwMonths = 0;
-                if ($wwEndDate->gt($wwStartDate)) {
-                    $wwMonths = $wwStartDate->diffInMonths($wwEndDate);
+                // W&W Rule: Uses configured amount from Settings/Criteria. Possession date strictly
+                // before the configured cut-off date => no charge. On or after cut-off date => charge applies.
+                if ($allottee->possession_date && Carbon::parse($allottee->possession_date)->lt($cutoffDate)) {
+                    $ww = 0.00;
+                } else {
+                    $ww = $wwAmt;
                 }
-                $ww = $wwMonths * $wwAmt;
                 
                 if (!$allottee->ww_charged && $ww > 0) {
                     $allottee->ww_charged = true;
@@ -163,21 +165,16 @@ class MonthlyBillController extends Controller
                 // Sync allottee.watch_ward_charges to match the generated ww snapshot
                 $allottee->watch_ward_charges = $ww;
 
-                // Calculate Fine dynamically on pending amount
-                $oldFine = $allottee->fine ?? 0;
-                // The pending balance before generating this month's new fine (exclude old fine from compounding)
+                // Calculate Fine on overdue arrears (excluding current month regular rent)
                 $pendingBeforeFine = max(0, ($maintenance + $ww) - $allottee->amount_paid);
-                
-                // We only fine the ARREARS, not the brand new current month rent.
                 $currentMonthRent = round($monthlyBase, 2);
                 $amountSubjectToFine = max(0, $pendingBeforeFine - $currentMonthRent);
 
-                $newFine = 0;
+                $fine = 0.00;
                 if ($amountSubjectToFine > 0) {
-                    $newFine = round($amountSubjectToFine * ($delayPct / 100), 2);
+                    $fine = round($amountSubjectToFine * ($delayPct / 100), 2);
                 }
                 
-                $fine = $oldFine + $newFine;
                 $allottee->fine = $fine;
                 $allottee->total_maintenance_charges = $maintenance + $ww + $fine;
 

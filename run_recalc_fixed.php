@@ -1,0 +1,2 @@
+<?php
+// Deactivated post-verification.

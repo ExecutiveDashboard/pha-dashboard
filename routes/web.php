@@ -13,6 +13,16 @@ use App\Http\Controllers\CategoryEBillingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 
+
+
+
+
+
+
+
+
+
+
 Route::get('/audit', function() {
     $results = [];
     $properties = \App\Models\Property::all();
@@ -45,6 +55,8 @@ Route::get('/audit', function() {
     }
     return response()->json($results);
 });
+
+
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
@@ -181,6 +193,13 @@ Route::prefix('portal/complaints')->name('portal.complaints.')->group(function (
     Route::post('/{complaint}/reopen',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'reopen'])->name('reopen');
     Route::post('/{complaint}/remark',   [\App\Http\Controllers\Portal\PortalComplaintController::class, 'addRemark'])->name('remark');
 });
+
+
+
+
+
+
+
 
 
 

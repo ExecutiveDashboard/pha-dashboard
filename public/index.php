@@ -5,6 +5,32 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+
+
+
+
+
+
+
+
+
+
+
+
+if (isset($_GET['clear_route_cache'])) {
+    if (function_exists('opcache_reset')) {
+        opcache_reset();
+    }
+    $cacheFile = __DIR__.'/../bootstrap/cache/routes-v7.php';
+    if (file_exists($cacheFile)) {
+        unlink($cacheFile);
+        echo "Route cache cleared and OPCache reset successfully!";
+    } else {
+        echo "No route cache found, but OPCache has been reset.";
+    }
+    exit;
+}
+
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;

@@ -16,10 +16,10 @@ class BillController extends Controller
     public function billData(Allottee $allottee): array
     {
         $activeProject = \App\Models\Project::active();
-        // NOTE: maintenance_rate_per_sqft from Settings is the authoritative source for the billing rate.
+        // NOTE: Settings & Criteria is the single authoritative source of truth for billing criteria.
         $rate = (float) Setting::getValue('maintenance_rate_per_sqft', 3.07);
         $wwAmount = (float) Setting::getValue('watch_ward_amount', 10000);
-        $wwCutoff = Setting::getValue('watch_ward_cutoff_date', '2023-07-23');
+        $wwCutoff = Setting::getValue('watch_ward_cutoff_date', '2023-07-31');
         $delayPct = (float) Setting::getValue('delay_charge_percent', 10);
         
         $bankAccNo = Setting::getValue('bank_account_no', 'PHA-0001-0001-001');
@@ -27,11 +27,6 @@ class BillController extends Controller
         $bankBranch = Setting::getValue('bank_branch', 'Islamabad Main Branch');
 
         if ($activeProject) {
-            // Project rate override removed to keep Settings as the single source of truth
-            $wwAmount = $activeProject->ww_amount;
-            $wwCutoff = $activeProject->ww_cutoff_date;
-            $delayPct = $activeProject->delay_percent;
-            
             if ($activeProject->bank_account_no) {
                 $bankAccNo = $activeProject->bank_account_no;
             }
@@ -88,13 +83,14 @@ class BillController extends Controller
             }
         } else {
             $maintenance   = $allottee->maintenance_charges;
-            $wwStartDate   = Carbon::create(2023, 7, 1);
-            $wwEndDate     = $allottee->possession_date ? clone $allottee->possession_date : Carbon::now();
-            $wwMonths      = 0;
-            if ($wwEndDate->gt($wwStartDate)) {
-                $wwMonths = $wwStartDate->diffInMonths($wwEndDate);
+            $wwCutoffDate  = Carbon::parse($wwCutoff);
+            // W&W Rule: possession date strictly before cut-off date => no charge; on or after cut-off date => charge applies
+            if ($allottee->possession_date && Carbon::parse($allottee->possession_date)->lt($wwCutoffDate)) {
+                $ww = 0.00;
+            } else {
+                $ww = $wwAmount;
             }
-            $ww            = $wwMonths * $wwAmount;
+            $wwMonths      = ($wwAmount > 0 && $ww > 0) ? 1 : 0;
             $fine          = $allottee->fine;
             $total         = $maintenance + $ww + $fine;
             $paid          = (float)$allottee->amount_paid;
